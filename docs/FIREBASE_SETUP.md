@@ -65,10 +65,10 @@ cp apps/web/.env.example apps/web/.env.local
 
 ```dotenv
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
-NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSy...
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_web_api_key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
-NEXT_PUBLIC_FIREBASE_APP_ID=1:1234567890:web:abcdef...
+NEXT_PUBLIC_FIREBASE_APP_ID=1:1234567890:web:abcdef123456
 ```
 
 ---

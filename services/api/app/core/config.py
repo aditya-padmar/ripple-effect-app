@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     # Test-only flag to allow synthetic test tokens in isolated unit tests and local demo runs
     AUTH_ALLOW_MOCK_TOKENS_FOR_TESTING: bool = False
     
+    # Optional Web Console Client Settings (never hardcoded in source)
+    FIREBASE_WEB_API_KEY: str = ""
+    FIREBASE_WEB_AUTH_DOMAIN: str = ""
+    FIREBASE_WEB_STORAGE_BUCKET: str = ""
+    FIREBASE_WEB_MESSAGING_SENDER_ID: str = ""
+    FIREBASE_WEB_APP_ID: str = ""
+    FIREBASE_WEB_MEASUREMENT_ID: str = ""
+    
     # CORS
     CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000"
     

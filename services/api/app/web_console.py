@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
+from app.core.config import settings
 
 router = APIRouter(tags=["Web Console"])
 
@@ -419,58 +420,75 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
     } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyBVGDfN2RLnkTKfM8x2v4SLC_6JUocVMcM",
-      authDomain: "ripple-guard.firebaseapp.com",
-      projectId: "ripple-guard",
-      storageBucket: "ripple-guard.firebasestorage.app",
-      messagingSenderId: "81571425592",
-      appId: "1:81571425592:web:035980d2f44e12c43aa5cd",
-      measurementId: "G-NWD89HY3CN"
+      apiKey: "{{FIREBASE_WEB_API_KEY}}",
+      authDomain: "{{FIREBASE_WEB_AUTH_DOMAIN}}",
+      projectId: "{{FIREBASE_PROJECT_ID}}",
+      storageBucket: "{{FIREBASE_WEB_STORAGE_BUCKET}}",
+      messagingSenderId: "{{FIREBASE_WEB_MESSAGING_SENDER_ID}}",
+      appId: "{{FIREBASE_WEB_APP_ID}}",
+      measurementId: "{{FIREBASE_WEB_MEASUREMENT_ID}}"
     };
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    window._firebaseAuth = auth;
+    let auth = null;
+    if (firebaseConfig.apiKey && !firebaseConfig.apiKey.includes("{{")) {
+      try {
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        window._firebaseAuth = auth;
+      } catch (e) {
+        console.warn("Could not init Firebase in console:", e);
+      }
+    }
 
     let isCreateMode = false;
     window.currentUserToken = null;
     window.currentUser = null;
 
-    // Listen for Auth state
-    onAuthStateChanged(auth, async (user) => {
-      window.currentUser = user;
-      const container = document.getElementById('auth-status-container');
-      if (user) {
-        try {
-          window.currentUserToken = await user.getIdToken();
-        } catch (e) {
-          console.warn("Could not get ID token:", e);
-        }
-        const displayName = user.displayName || user.email.split('@')[0];
-        container.innerHTML = `
-          <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-300 font-bold flex items-center justify-center text-xs overflow-hidden">
-              ${user.photoURL ? `<img src="${user.photoURL}" class="w-full h-full object-cover">` : displayName[0].toUpperCase()}
+    if (auth) {
+      // Listen for Auth state
+      onAuthStateChanged(auth, async (user) => {
+        window.currentUser = user;
+        const container = document.getElementById('auth-status-container');
+        if (user) {
+          try {
+            window.currentUserToken = await user.getIdToken();
+          } catch (e) {
+            console.warn("Could not get ID token:", e);
+          }
+          const displayName = user.displayName || user.email.split('@')[0];
+          container.innerHTML = `
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-300 font-bold flex items-center justify-center text-xs overflow-hidden">
+                ${user.photoURL ? `<img src="${user.photoURL}" class="w-full h-full object-cover">` : displayName[0].toUpperCase()}
+              </div>
+              <div class="text-left hidden sm:block">
+                <div class="text-xs font-semibold text-white leading-tight">${displayName}</div>
+                <div class="text-[10px] text-teal-300 font-mono">${user.email}</div>
+              </div>
+              <button onclick="handleSignOut()" class="px-2.5 py-1.5 rounded-lg bg-navy-800 hover:bg-navy-700 border border-navy-700 text-xs text-slate-400 hover:text-white transition-colors" title="Sign Out">
+                Sign Out
+              </button>
             </div>
-            <div class="text-left hidden sm:block">
-              <div class="text-xs font-semibold text-white leading-tight">${displayName}</div>
-              <div class="text-[10px] text-teal-300 font-mono">${user.email}</div>
-            </div>
-            <button onclick="handleSignOut()" class="px-2.5 py-1.5 rounded-lg bg-navy-800 hover:bg-navy-700 border border-navy-700 text-xs text-slate-400 hover:text-white transition-colors" title="Sign Out">
-              Sign Out
+          `;
+        } else {
+          window.currentUserToken = null;
+          container.innerHTML = `
+            <button onclick="openAuthModal()" class="px-3.5 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-navy-950 font-bold text-xs shadow-md transition-all flex items-center gap-1.5">
+              <span>🔑 Sign In / Register</span>
             </button>
-          </div>
-        `;
-      } else {
-        window.currentUserToken = null;
+          `;
+        }
+      });
+    } else {
+      const container = document.getElementById('auth-status-container');
+      if (container) {
         container.innerHTML = `
-          <button onclick="openAuthModal()" class="px-3.5 py-1.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-navy-950 font-bold text-xs shadow-md transition-all flex items-center gap-1.5">
-            <span>🔑 Sign In / Register</span>
-          </button>
+          <span class="text-[11px] text-teal-300/80 font-mono px-2.5 py-1 rounded-lg bg-navy-800 border border-teal-500/20">
+            ⚡ Demo Session Active
+          </span>
         `;
       }
-    });
+    }
 
     window.handleGoogleSignIn = async function() {
       const errBox = document.getElementById('auth-error');
@@ -790,4 +808,12 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
 @router.get("/", response_class=HTMLResponse)
 def get_web_console():
     """Interactive visual Web Console for RippleGuard."""
-    return HTMLResponse(content=WEB_CONSOLE_HTML, status_code=200)
+    rendered = WEB_CONSOLE_HTML
+    rendered = rendered.replace("{{FIREBASE_WEB_API_KEY}}", settings.FIREBASE_WEB_API_KEY or "")
+    rendered = rendered.replace("{{FIREBASE_WEB_AUTH_DOMAIN}}", settings.FIREBASE_WEB_AUTH_DOMAIN or "")
+    rendered = rendered.replace("{{FIREBASE_PROJECT_ID}}", settings.FIREBASE_PROJECT_ID or "")
+    rendered = rendered.replace("{{FIREBASE_WEB_STORAGE_BUCKET}}", settings.FIREBASE_WEB_STORAGE_BUCKET or "")
+    rendered = rendered.replace("{{FIREBASE_WEB_MESSAGING_SENDER_ID}}", settings.FIREBASE_WEB_MESSAGING_SENDER_ID or "")
+    rendered = rendered.replace("{{FIREBASE_WEB_APP_ID}}", settings.FIREBASE_WEB_APP_ID or "")
+    rendered = rendered.replace("{{FIREBASE_WEB_MEASUREMENT_ID}}", settings.FIREBASE_WEB_MEASUREMENT_ID or "")
+    return HTMLResponse(content=rendered, status_code=200)
