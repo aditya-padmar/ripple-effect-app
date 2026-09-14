@@ -283,11 +283,17 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-navy-700/60 pb-4">
           <div>
             <h3 class="font-bold text-white text-base">CycloneDX 1.5/1.6 JSON Ingestion & Security Scan</h3>
-            <p class="text-xs text-slate-400">Upload a software inventory or test with our valid sample linked to your account</p>
+            <p class="text-xs text-slate-400">Upload a local software inventory (.json) or test with our pre-loaded sample</p>
           </div>
-          <button onclick="runSampleIngestion()" class="px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-navy-950 font-bold text-xs shadow transition-colors">
-            🚀 Ingest Sample SBOM & Scan
-          </button>
+          <div class="flex flex-wrap items-center gap-3">
+            <input type="file" id="custom-sbom-input" accept=".json" class="hidden" onchange="handleCustomFileUpload(event)" />
+            <button onclick="document.getElementById('custom-sbom-input').click()" class="px-4 py-2 rounded-xl bg-navy-800 hover:bg-navy-700 border border-teal-500/40 text-teal-300 font-semibold text-xs shadow transition-colors flex items-center gap-2">
+              <span>📁 Upload Local SBOM (.json)</span>
+            </button>
+            <button onclick="runSampleIngestion()" class="px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-navy-950 font-bold text-xs shadow transition-colors">
+              🚀 Ingest Sample SBOM & Scan
+            </button>
+          </div>
         </div>
 
         <div id="ingest-status" class="hidden p-4 rounded-xl bg-navy-950 border border-teal-500/30 text-xs flex flex-col gap-3 font-mono">
@@ -563,16 +569,56 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
       }
     }
 
+    async function handleCustomFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const json = JSON.parse(text);
+        await runIngestionWithPayload(json, file.name);
+      } catch (err) {
+        alert("Invalid JSON file: " + err.message);
+      } finally {
+        event.target.value = '';
+      }
+    }
+
     async function runSampleIngestion() {
+      const sampleSbom = {
+        "bomFormat": "CycloneDX",
+        "specVersion": "1.5",
+        "version": 1,
+        "metadata": { "component": { "bom-ref": "gateway@1.0.0", "name": "gateway", "version": "1.0.0", "type": "application" } },
+        "components": [
+          { "bom-ref": "express@4.19.2", "name": "express", "version": "4.19.2", "purl": "pkg:npm/express@4.19.2" },
+          { "bom-ref": "qs@6.11.0", "name": "qs", "version": "6.11.0", "purl": "pkg:npm/qs@6.11.0" },
+          { "bom-ref": "debug@4.3.4", "name": "debug", "version": "4.3.4", "purl": "pkg:npm/debug@4.3.4" }
+        ],
+        "dependencies": [
+          { "ref": "gateway@1.0.0", "dependsOn": ["express@4.19.2", "debug@4.3.4"] },
+          { "ref": "express@4.19.2", "dependsOn": ["qs@6.11.0"] }
+        ]
+      };
+      await runIngestionWithPayload(sampleSbom, "Payment Core Gateway (Sample)");
+    }
+
+    async function runIngestionWithPayload(payload, sourceName) {
       const statusBox = document.getElementById('ingest-status');
       const logBox = document.getElementById('ingest-log');
+      const findingsContainer = document.getElementById('findings-container');
+      const findingsBody = document.getElementById('findings-body');
+      
       statusBox.classList.remove('hidden');
+      findingsContainer.classList.add('hidden');
+      findingsBody.innerHTML = '';
       
       const authHeader = window.currentUserToken 
         ? `Bearer ${window.currentUserToken}`
         : 'Bearer mock-token-judge:judge@example.com';
 
-      const userDesc = window.currentUser ? `Firebase User (${window.currentUser.email})` : 'Demo Session';
+      const userDesc = window.currentUser ? `Firebase User (${window.currentUser.email})` : 'Demo Session (judge@example.com)';
+      const projectName = sourceName.replace('.json', '') || 'Custom SBOM Project';
+      
       logBox.innerHTML = `1. Creating Project under ${userDesc}...\\n`;
 
       try {
@@ -580,33 +626,25 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
         const pRes = await fetch('/api/v1/projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-          body: JSON.stringify({ name: 'Payment Core Gateway' })
+          body: JSON.stringify({ name: projectName })
         });
+        if (!pRes.ok) {
+          const errData = await pRes.json().catch(() => ({}));
+          throw new Error(`Project creation failed (${pRes.status}): ${errData?.error?.message || pRes.statusText}`);
+        }
         const project = await pRes.json();
-        logBox.innerHTML += `✓ Project created (ID: ${project.id})\\n2. Uploading valid CycloneDX 1.5 SBOM payload...\\n`;
+        logBox.innerHTML += `✓ Project created (ID: ${project.id})\\n2. Uploading CycloneDX SBOM payload (${sourceName})...\\n`;
 
         // Step 2: Upload CycloneDX SBOM
-        const sampleSbom = {
-          "bomFormat": "CycloneDX",
-          "specVersion": "1.5",
-          "version": 1,
-          "metadata": { "component": { "bom-ref": "gateway@1.0.0", "name": "gateway", "version": "1.0.0", "type": "application" } },
-          "components": [
-            { "bom-ref": "express@4.19.2", "name": "express", "version": "4.19.2", "purl": "pkg:npm/express@4.19.2" },
-            { "bom-ref": "qs@6.11.0", "name": "qs", "version": "6.11.0", "purl": "pkg:npm/qs@6.11.0" },
-            { "bom-ref": "debug@4.3.4", "name": "debug", "version": "4.3.4", "purl": "pkg:npm/debug@4.3.4" }
-          ],
-          "dependencies": [
-            { "ref": "gateway@1.0.0", "dependsOn": ["express@4.19.2", "debug@4.3.4"] },
-            { "ref": "express@4.19.2", "dependsOn": ["qs@6.11.0"] }
-          ]
-        };
-
         const sRes = await fetch(`/api/v1/projects/${project.id}/snapshots`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-          body: JSON.stringify(sampleSbom)
+          body: JSON.stringify(payload)
         });
+        if (!sRes.ok) {
+          const errData = await sRes.json().catch(() => ({}));
+          throw new Error(`SBOM upload failed (${sRes.status}): ${errData?.error?.message || sRes.statusText}`);
+        }
         const snapshot = await sRes.json();
         logBox.innerHTML += `✓ Snapshot parsed & persisted! Nodes: ${snapshot.occurrence_count}, Edges: ${snapshot.edge_count}\\n3. Running OSV security vulnerability check...\\n`;
 
@@ -615,35 +653,48 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
           method: 'POST',
           headers: { 'Authorization': authHeader }
         });
+        if (!eRes.ok) {
+          const errData = await eRes.json().catch(() => ({}));
+          throw new Error(`Enrichment trigger failed (${eRes.status}): ${errData?.error?.message || eRes.statusText}`);
+        }
         const check = await eRes.json();
-        logBox.innerHTML += `✓ OSV check complete: status '${check.status}' with ${check.findings_count} findings!\\n4. Fetching Cytoscape dependency graph...\\n`;
+        const checkCount = check.findings_count !== undefined ? `${check.findings_count} findings` : 'check complete';
+        logBox.innerHTML += `✓ OSV check status: '${check.status}' (${checkCount})\\n4. Fetching Cytoscape dependency graph...\\n`;
 
         // Step 4: Fetch Graph
         const gRes = await fetch(`/api/v1/snapshots/${snapshot.id}/graph`, {
           headers: { 'Authorization': authHeader }
         });
+        if (!gRes.ok) {
+          const errData = await gRes.json().catch(() => ({}));
+          throw new Error(`Graph retrieval failed (${gRes.status}): ${errData?.error?.message || gRes.statusText}`);
+        }
         const graph = await gRes.json();
-        logBox.innerHTML += `✓ Cytoscape graph returned: ${graph.nodes.length} nodes, ${graph.edges.length} edges ready for visual layout!\\n`;
+        const nodeCount = graph.nodes ? graph.nodes.length : 0;
+        const edgeCount = graph.edges ? graph.edges.length : 0;
+        logBox.innerHTML += `✓ Cytoscape graph returned: ${nodeCount} nodes, ${edgeCount} edges ready for visual layout!\\n`;
 
         // Step 5: Fetch Findings
         const fRes = await fetch(`/api/v1/snapshots/${snapshot.id}/findings`, {
           headers: { 'Authorization': authHeader }
         });
-        const findings = await fRes.json();
-        const findingsContainer = document.getElementById('findings-container');
-        const findingsBody = document.getElementById('findings-body');
-        
-        if (findings.items && findings.items.length > 0) {
-          findingsContainer.classList.remove('hidden');
-          findingsBody.innerHTML = findings.items.map(item => `
-            <tr class="hover:bg-navy-850">
-              <td class="p-3 font-mono font-bold text-white">${item.package_name}@${item.package_version}</td>
-              <td class="p-3 font-mono uppercase text-teal-400">${item.ecosystem}</td>
-              <td class="p-3 font-mono text-amber-300 font-semibold">${item.advisory.external_id}</td>
-              <td class="p-3 font-mono text-slate-400">${item.match_details.severity || 'Medium'}</td>
-              <td class="p-3 text-slate-300 text-[11px]">${item.match_details.summary || 'Security advisory match'}</td>
-            </tr>
-          `).join('');
+        if (fRes.ok) {
+          const findings = await fRes.json();
+          if (findings.items && findings.items.length > 0) {
+            findingsContainer.classList.remove('hidden');
+            findingsBody.innerHTML = findings.items.map(item => `
+              <tr class="hover:bg-navy-850">
+                <td class="p-3 font-mono font-bold text-white">${item.package_name}@${item.package_version}</td>
+                <td class="p-3 font-mono uppercase text-teal-400">${item.ecosystem}</td>
+                <td class="p-3 font-mono text-amber-300 font-semibold">${item.advisory.external_id}</td>
+                <td class="p-3 font-mono text-slate-400">${item.match_details.severity || 'Medium'}</td>
+                <td class="p-3 text-slate-300 text-[11px]">${item.match_details.summary || 'Security advisory match'}</td>
+              </tr>
+            `).join('');
+            logBox.innerHTML += `✓ Displayed ${findings.items.length} security advisories in findings table below!\\n`;
+          } else {
+            logBox.innerHTML += `✓ No known vulnerabilities reported in OSV for this package inventory.\\n`;
+          }
         }
       } catch (err) {
         logBox.innerHTML += `\\n❌ Error: ${err.message}`;

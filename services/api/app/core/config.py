@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # Firebase Auth
     FIREBASE_PROJECT_ID: str = ""
     GOOGLE_APPLICATION_CREDENTIALS: str = ""
-    # Test-only flag to allow synthetic test tokens in isolated unit tests
+    # Test-only flag to allow synthetic test tokens in isolated unit tests and local demo runs
     AUTH_ALLOW_MOCK_TOKENS_FOR_TESTING: bool = False
     
     # CORS
