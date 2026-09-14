@@ -1,34 +1,36 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  FolderGit2,
-  Plus,
-  Layers,
-  Calendar,
   AlertCircle,
   ArrowRight,
-  Shield,
+  CalendarDays,
+  FolderKanban,
+  Layers3,
+  Plus,
   RefreshCw,
-  Server,
+  Search,
+  ShieldCheck,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { apiClient, ApiError } from "@/lib/api-client";
-import { Project, PaginatedResponse } from "@/lib/types";
+import { PaginatedResponse, Project } from "@/lib/types";
 
 export default function DashboardPage() {
-  const { user, loading: authLoading, isConfigured } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // New project modal state
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [name, setName] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
-  const [creating, setCreating] = useState<boolean>(false);
+  const [query, setQuery] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const createButtonRef = useRef<HTMLButtonElement>(null);
 
   const fetchProjects = useCallback(async () => {
     if (!user) return;
@@ -38,30 +40,38 @@ export default function DashboardPage() {
       const response = await apiClient<PaginatedResponse<Project>>("/projects");
       setProjects(response.items);
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        setError(`${err.code}: ${err.message}`);
-      } else if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Failed to load projects.");
-      }
+      setError(
+        err instanceof ApiError
+          ? `${err.code}: ${err.message}`
+          : err instanceof Error
+            ? err.message
+            : "Failed to load projects.",
+      );
     } finally {
       setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    if (!authLoading && user) {
-      fetchProjects();
-    } else if (!authLoading && !user) {
-      setLoading(false);
-    }
+    if (!authLoading && user) fetchProjects();
+    else if (!authLoading) setLoading(false);
   }, [authLoading, user, fetchProjects]);
-
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (showModal && !dialog.open) dialog.showModal();
+    if (!showModal && dialog.open) {
+      dialog.close();
+      createButtonRef.current?.focus();
+    }
+  }, [showModal]);
+  const closeModal = () => {
+    setShowModal(false);
+    setCreateError(null);
+  };
+  const handleCreateProject = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!name.trim()) return;
-
     setCreating(true);
     setCreateError(null);
     try {
@@ -74,239 +84,355 @@ export default function DashboardPage() {
       });
       setName("");
       setDescription("");
-      setShowModal(false);
+      closeModal();
       await fetchProjects();
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        setCreateError(err.message);
-      } else if (err instanceof Error) {
-        setCreateError(err.message);
-      } else {
-        setCreateError("Failed to create project.");
-      }
+      setCreateError(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to create project.",
+      );
     } finally {
       setCreating(false);
     }
   };
+  const visibleProjects = projects.filter((project) =>
+    `${project.name} ${project.description ?? ""}`
+      .toLowerCase()
+      .includes(query.toLowerCase()),
+  );
 
-  if (authLoading) {
+  if (authLoading)
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-sm text-slate-400">
-          <RefreshCw className="w-4 h-4 animate-spin text-teal-400" />
-          <span>Verifying authentication session...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="flex-1 max-w-4xl mx-auto px-4 py-16 text-center">
-        <div className="w-14 h-14 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-400 mx-auto flex items-center justify-center mb-4">
-          <Shield className="w-7 h-7" />
-        </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Protected Security Workspace</h2>
-        <p className="text-sm text-slate-300 max-w-md mx-auto mb-8">
-          To manage dependency inventories, view private vulnerability scans, and simulate scenario blast radius, please sign in.
+      <div className="flex flex-1 items-center justify-center">
+        <p className="flex items-center gap-3 text-sm text-slate-400">
+          <RefreshCw className="h-4 w-4 animate-spin text-teal-300" /> Verifying
+          authentication session…
         </p>
-        <div className="flex justify-center gap-4">
-          <Link
-            href="/login"
-            className="px-5 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-navy-950 font-bold text-sm transition-colors"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/demo"
-            className="px-5 py-2.5 rounded-xl bg-navy-800 hover:bg-navy-700 border border-navy-700 text-white font-semibold text-sm transition-colors"
-          >
-            Try Synthetic Demo
-          </Link>
-        </div>
       </div>
     );
-  }
+  if (!user)
+    return (
+      <div className="mx-auto flex w-full max-w-[1320px] flex-1 items-center px-4 py-16 sm:px-6 lg:px-8">
+        <section className="callout-panel w-full text-center">
+          <div className="mx-auto max-w-lg">
+            <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl border border-teal-400/25 bg-teal-400/10 text-teal-300">
+              <ShieldCheck className="h-6 w-6" />
+            </span>
+            <p className="eyebrow mt-5">Protected workspace</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">
+              Bring your own inventory.
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-slate-400">
+              Sign in to create projects and manage private CycloneDX dependency
+              snapshots. The public synthetic laboratory stays available without
+              an account.
+            </p>
+            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link href="/login" className="button-primary justify-center">
+                Sign in
+              </Link>
+              <Link href="/demo" className="button-secondary justify-center">
+                Try synthetic demo
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
 
   return (
-    <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-8 border-b border-navy-800">
+    <div className="mx-auto w-full max-w-[1320px] flex-1 px-4 py-8 sm:px-6 lg:px-8">
+      <section className="dashboard-head">
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Security Projects</h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Manage your applications, environments, and immutable CycloneDX dependency snapshots
+          <p className="eyebrow">Security workspace</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-.04em] text-white sm:text-4xl">
+            Your security workspace.
+          </h1>
+          <p className="mt-2 text-sm text-slate-400">
+            Manage your applications, environments, and dependency snapshots in
+            one place.
           </p>
         </div>
-
-        <div className="flex items-center gap-3">
+        <div className="flex gap-2">
           <button
-            onClick={() => fetchProjects()}
-            className="p-2.5 rounded-xl bg-navy-800 hover:bg-navy-700 border border-navy-700 text-slate-300 hover:text-white transition-colors"
-            title="Refresh list"
+            onClick={fetchProjects}
+            className="icon-button"
+            title="Refresh projects"
+            aria-label="Refresh projects"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-teal-400" : ""}`} />
+            <RefreshCw
+              className={`h-4 w-4 ${loading ? "animate-spin text-teal-300" : ""}`}
+            />
           </button>
           <button
+            ref={createButtonRef}
             onClick={() => setShowModal(true)}
-            className="px-4 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-navy-950 font-bold text-sm shadow-md transition-colors flex items-center gap-2"
+            className="button-primary"
           >
-            <Plus className="w-4 h-4" />
-            <span>New Project</span>
+            <Plus className="h-4 w-4" /> New project
           </button>
         </div>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="my-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-          <div>
-            <div className="font-semibold">Failed to load projects</div>
-            <div className="text-xs text-rose-400/90 mt-0.5">{error}</div>
-          </div>
+      </section>
+      <section
+        aria-label="Loaded project overview"
+        className="mt-6 grid gap-3 sm:grid-cols-3"
+      >
+        {[
+          {
+            label: "Projects in view",
+            value: projects.length,
+            note: "Your loaded project inventory",
+            icon: FolderKanban,
+          },
+          {
+            label: "Application assets",
+            value: projects.reduce(
+              (sum, project) => sum + project.asset_count,
+              0,
+            ),
+            note: "Across loaded projects",
+            icon: ShieldCheck,
+          },
+          {
+            label: "Dependency snapshots",
+            value: projects.reduce(
+              (sum, project) => sum + project.snapshot_count,
+              0,
+            ),
+            note: "Across loaded projects",
+            icon: Layers3,
+          },
+        ].map(({ label, value, note, icon: Icon }) => (
+          <article key={label} className="workspace-panel p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-slate-400">{label}</p>
+              <Icon className="h-4 w-4 text-teal-300" />
+            </div>
+            <p className="mt-3 text-3xl font-semibold tracking-tight text-white">
+              {loading || error ? "—" : value}
+            </p>
+            <p className="mt-2 text-[11px] text-slate-400">{note}</p>
+          </article>
+        ))}
+      </section>
+      <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative max-w-md flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="workspace-input pl-9"
+            placeholder="Filter loaded projects"
+            aria-label="Filter projects"
+          />
         </div>
-      )}
-
-      {/* Project Cards Grid */}
-      <div className="mt-8">
+        <p className="text-xs text-slate-400">
+          {loading
+            ? "Loading projects…"
+            : `${projects.length} loaded ${projects.length === 1 ? "project" : "projects"}`}
+        </p>
+      </div>
+      {error ? (
+        <section
+          role="alert"
+          className="mt-6 flex items-start justify-between gap-4 rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100"
+        >
+          <div className="flex gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-300" />
+            <div>
+              <h2 className="font-semibold">Projects could not be loaded</h2>
+              <p className="mt-1 text-xs text-rose-200/90">{error}</p>
+            </div>
+          </div>
+          <button
+            onClick={fetchProjects}
+            className="button-secondary border-rose-300/30 px-3 py-2 text-rose-100"
+          >
+            Retry
+          </button>
+        </section>
+      ) : null}
+      <section className="mt-6">
         {loading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3].map((n) => (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {[0, 1, 2].map((index) => (
               <div
-                key={n}
-                className="h-44 rounded-2xl bg-navy-900/60 border border-navy-800 animate-pulse p-6"
+                key={index}
+                className="h-48 animate-pulse rounded-2xl border border-navy-800 bg-navy-900/55"
               />
             ))}
           </div>
-        ) : projects.length === 0 ? (
-          <div className="text-center py-16 bg-navy-900/30 border border-navy-800/80 rounded-2xl p-8">
-            <div className="w-12 h-12 rounded-xl bg-navy-800 text-slate-400 mx-auto flex items-center justify-center mb-4">
-              <FolderGit2 className="w-6 h-6" />
-            </div>
-            <h3 className="text-base font-semibold text-white mb-1">No Projects Found</h3>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto mb-6">
-              Create your first project to upload CycloneDX software bill of materials and analyze dependency risks.
+        ) : error ? null : projects.length === 0 ? (
+          <EmptyState create={() => setShowModal(true)} />
+        ) : visibleProjects.length === 0 ? (
+          <div className="workspace-panel p-10 text-center">
+            <Search className="mx-auto h-6 w-6 text-slate-500" />
+            <h2 className="mt-3 font-semibold text-white">
+              No matching projects
+            </h2>
+            <p className="mt-1 text-xs text-slate-400">
+              Clear the filter or use a different project name.
             </p>
             <button
-              onClick={() => setShowModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-navy-950 font-bold text-xs shadow transition-colors"
+              onClick={() => setQuery("")}
+              className="quiet-link mt-4 text-xs"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create First Project</span>
+              Clear filter
             </button>
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((p) => (
-              <Link
-                key={p.id}
-                href={`/projects/${p.id}`}
-                className="group p-6 rounded-2xl bg-navy-900/80 hover:bg-navy-900 border border-navy-800 hover:border-teal-500/50 shadow-md transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <h3 className="font-bold text-white text-base group-hover:text-teal-300 transition-colors line-clamp-1">
-                      {p.name}
-                    </h3>
-                    <div className="w-7 h-7 rounded-lg bg-navy-800 flex items-center justify-center text-slate-400 group-hover:text-teal-400 transition-colors shrink-0">
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-slate-400 line-clamp-2 min-h-[32px]">
-                    {p.description || "No project description provided."}
-                  </p>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-navy-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                  <div className="flex items-center gap-1.5" title="Associated Applications / Environments">
-                    <Server className="w-3.5 h-3.5 text-teal-400" />
-                    <span>{p.asset_count} {p.asset_count === 1 ? "Asset" : "Assets"}</span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5" title="Captured Snapshots">
-                    <Layers className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{p.snapshot_count} {p.snapshot_count === 1 ? "Snapshot" : "Snapshots"}</span>
-                  </div>
-
-                  <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                    <Calendar className="w-3 h-3" />
-                    <span>{new Date(p.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </Link>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {visibleProjects.map((project) => (
+              <ProjectCard key={project.id} project={project} />
             ))}
           </div>
         )}
-      </div>
-
-      {/* New Project Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-navy-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-navy-900 border border-navy-700 p-6 rounded-2xl shadow-2xl">
-            <h2 className="text-lg font-bold text-white mb-1">Create New Project</h2>
-            <p className="text-xs text-slate-400 mb-6">
-              A project aggregates applications and environments to analyze shared dependency risks.
+      </section>
+      <dialog
+        ref={dialogRef}
+        onCancel={(event) => {
+          event.preventDefault();
+          if (!creating) closeModal();
+        }}
+        onClose={() => setShowModal(false)}
+        aria-labelledby="create-project-heading"
+        aria-describedby="create-project-description"
+        className="project-dialog"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="eyebrow">New workspace</p>
+            <h2
+              id="create-project-heading"
+              className="mt-1 text-xl font-semibold text-white"
+            >
+              Create a project
+            </h2>
+            <p
+              id="create-project-description"
+              className="mt-2 text-xs leading-5 text-slate-400"
+            >
+              Projects group applications and their immutable dependency
+              snapshots.
             </p>
-
-            {createError && (
-              <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300">
-                {createError}
-              </div>
-            )}
-
-            <form onSubmit={handleCreateProject} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1" htmlFor="projectName">
-                  Project Name *
-                </label>
-                <input
-                  id="projectName"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Payments Monolith"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-navy-950 border border-navy-700 text-white text-sm focus:outline-none focus:border-teal-500 transition-colors"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1" htmlFor="projectDesc">
-                  Description
-                </label>
-                <textarea
-                  id="projectDesc"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  placeholder="Primary ecommerce and checkout dependency scope"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-navy-950 border border-navy-700 text-white text-sm focus:outline-none focus:border-teal-500 transition-colors"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  disabled={creating}
-                  className="px-4 py-2 rounded-lg bg-navy-800 hover:bg-navy-750 text-slate-300 text-xs font-semibold transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating || !name.trim()}
-                  className="px-4 py-2 rounded-lg bg-teal-500 hover:bg-teal-400 text-navy-950 text-xs font-bold shadow transition-colors disabled:opacity-50"
-                >
-                  {creating ? "Creating..." : "Create Project"}
-                </button>
-              </div>
-            </form>
           </div>
+          <button
+            disabled={creating}
+            onClick={closeModal}
+            className="icon-button"
+            aria-label="Close create project dialog"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      )}
+        {createError && (
+          <div
+            role="alert"
+            className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/10 p-3 text-xs text-rose-100"
+          >
+            {createError}
+          </div>
+        )}
+        <form onSubmit={handleCreateProject} className="mt-6 space-y-4">
+          <div>
+            <label htmlFor="projectName" className="input-label">
+              Project name <span aria-hidden="true">*</span>
+            </label>
+            <input
+              id="projectName"
+              autoFocus
+              required
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className="workspace-input"
+              placeholder="e.g. Payments platform"
+            />
+          </div>
+          <div>
+            <label htmlFor="projectDescription" className="input-label">
+              Description{" "}
+              <span className="font-normal text-slate-500">optional</span>
+            </label>
+            <textarea
+              id="projectDescription"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              className="workspace-input min-h-24 resize-y"
+              placeholder="What this project contains"
+            />
+          </div>
+          <div className="flex justify-end gap-3 border-t border-navy-700/70 pt-5">
+            <button
+              type="button"
+              disabled={creating}
+              onClick={closeModal}
+              className="button-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={creating || !name.trim()}
+              className="button-primary disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {creating ? "Creating…" : "Create project"}
+            </button>
+          </div>
+        </form>
+      </dialog>
     </div>
+  );
+}
+
+function EmptyState({ create }: { create: () => void }) {
+  return (
+    <div className="workspace-panel p-10 text-center sm:p-16">
+      <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-navy-800 text-slate-400">
+        <FolderKanban className="h-6 w-6" />
+      </span>
+      <h2 className="mt-4 text-lg font-semibold text-white">No projects yet</h2>
+      <p className="mx-auto mt-2 max-w-sm text-xs leading-5 text-slate-400">
+        Create a project before adding applications and CycloneDX inventories.
+        Nothing has been scanned or scored yet.
+      </p>
+      <button onClick={create} className="button-primary mx-auto mt-6">
+        <Plus className="h-4 w-4" /> Create first project
+      </button>
+    </div>
+  );
+}
+function ProjectCard({ project }: { project: Project }) {
+  return (
+    <Link href={`/projects/${project.id}`} className="project-card group">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="line-clamp-1 text-lg font-semibold text-white group-hover:text-teal-200">
+            {project.name}
+          </h2>
+          <p className="mt-2 min-h-10 line-clamp-2 text-xs leading-5 text-slate-400">
+            {project.description || "No project description provided."}
+          </p>
+        </div>
+        <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-teal-300" />
+      </div>
+      <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 border-t border-navy-700/70 pt-4 text-[11px] text-slate-400">
+        <span className="inline-flex items-center gap-1.5">
+          <FolderKanban className="h-3.5 w-3.5 text-teal-300" />{" "}
+          {project.asset_count} {project.asset_count === 1 ? "asset" : "assets"}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Layers3 className="h-3.5 w-3.5 text-teal-300" />{" "}
+          {project.snapshot_count}{" "}
+          {project.snapshot_count === 1 ? "snapshot" : "snapshots"}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <CalendarDays className="h-3.5 w-3.5" />{" "}
+          {new Date(project.created_at).toLocaleDateString()}
+        </span>
+      </div>
+    </Link>
   );
 }

@@ -4,7 +4,8 @@ import { AuthProvider } from "@/features/auth/AuthContext";
 import { Header } from "@/components/ui/Header";
 
 export const metadata: Metadata = {
-  title: "RippleGuard — Explainable Open-Source Dependency Risk & Scenario Analysis",
+  title:
+    "RippleGuard — Explainable Open-Source Dependency Risk & Scenario Analysis",
   description:
     "Simulate downstream exposure from compromised software dependencies, evaluate counterfactual mitigations, and prioritize engineering repair with mathematical rigor.",
 };
@@ -18,8 +19,17 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className="bg-navy-950 text-slate-100 antialiased min-h-screen flex flex-col selection:bg-teal-500 selection:text-navy-950">
         <AuthProvider>
+          <a href="#main-content" className="skip-link">
+            Skip to content
+          </a>
           <Header />
-          <main className="flex-1 flex flex-col">{children}</main>
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="flex-1 flex flex-col"
+          >
+            {children}
+          </main>
         </AuthProvider>
       </body>
     </html>
