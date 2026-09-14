@@ -13,6 +13,7 @@ import {
   Search,
   ShieldCheck,
   X,
+  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { apiClient, ApiError } from "@/lib/api-client";
@@ -45,7 +46,7 @@ export default function DashboardPage() {
           ? `${err.code}: ${err.message}`
           : err instanceof Error
             ? err.message
-            : "Failed to load projects.",
+            : "Failed to load projects."
       );
     } finally {
       setLoading(false);
@@ -56,6 +57,7 @@ export default function DashboardPage() {
     if (!authLoading && user) fetchProjects();
     else if (!authLoading) setLoading(false);
   }, [authLoading, user, fetchProjects]);
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -65,10 +67,12 @@ export default function DashboardPage() {
       createButtonRef.current?.focus();
     }
   }, [showModal]);
+
   const closeModal = () => {
     setShowModal(false);
     setCreateError(null);
   };
+
   const handleCreateProject = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
@@ -92,347 +96,315 @@ export default function DashboardPage() {
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Failed to create project.",
+            : "Failed to create project."
       );
     } finally {
       setCreating(false);
     }
   };
+
   const visibleProjects = projects.filter((project) =>
     `${project.name} ${project.description ?? ""}`
       .toLowerCase()
-      .includes(query.toLowerCase()),
+      .includes(query.toLowerCase())
   );
 
-  if (authLoading)
+  if (authLoading) {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex flex-1 items-center justify-center min-h-[60vh]">
         <p className="flex items-center gap-3 text-sm text-slate-400">
-          <RefreshCw className="h-4 w-4 animate-spin text-teal-300" /> Verifying
-          authentication session…
+          <RefreshCw className="h-4 w-4 animate-spin text-teal-400" />
+          <span>Verifying authentication session…</span>
         </p>
       </div>
     );
-  if (!user)
+  }
+
+  if (!user) {
     return (
-      <div className="mx-auto flex w-full max-w-[1320px] flex-1 items-center px-4 py-16 sm:px-6 lg:px-8">
-        <section className="callout-panel w-full text-center">
-          <div className="mx-auto max-w-lg">
-            <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl border border-teal-400/25 bg-teal-400/10 text-teal-300">
-              <ShieldCheck className="h-6 w-6" />
+      <div className="mx-auto flex w-full max-w-5xl flex-1 items-center px-4 py-20 sm:px-6 lg:px-8">
+        <section className="glass-card w-full p-8 sm:p-12 text-center">
+          <div className="mx-auto max-w-lg space-y-4">
+            <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-teal-400/30 bg-teal-400/10 text-teal-300 shadow-glow-teal">
+              <ShieldCheck className="h-7 w-7" />
             </span>
-            <p className="eyebrow mt-5">Protected workspace</p>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white">
-              Bring your own inventory.
+            <div className="badge-teal">Authenticated Workspace</div>
+            <h1 className="text-3xl font-bold tracking-tight text-white">
+              Connect Your Dependency Inventories
             </h1>
-            <p className="mt-3 text-sm leading-6 text-slate-400">
-              Sign in to create projects and manage private CycloneDX dependency
-              snapshots. The public synthetic laboratory stays available without
-              an account.
+            <p className="text-sm leading-relaxed text-slate-400">
+              Sign in to manage projects, upload private CycloneDX SBOM snapshots, and execute real OSV advisory scans. Or explore our synthetic fixture sandbox with zero authentication.
             </p>
-            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link href="/login" className="button-primary justify-center">
-                Sign in
+            <div className="flex flex-col sm:flex-row justify-center gap-3 pt-4">
+              <Link href="/login" className="btn-primary">
+                Sign In to Workspace
               </Link>
-              <Link href="/demo" className="button-secondary justify-center">
-                Try synthetic demo
+              <Link href="/demo" className="btn-secondary">
+                <Sparkles className="h-4 w-4 text-teal-400" />
+                <span>Try Synthetic Demo</span>
               </Link>
             </div>
           </div>
         </section>
       </div>
     );
+  }
 
   return (
-    <div className="mx-auto w-full max-w-[1320px] flex-1 px-4 py-8 sm:px-6 lg:px-8">
-      <section className="dashboard-head">
+    <div className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8 space-y-8">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-navy-850">
         <div>
-          <p className="eyebrow">Security workspace</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-[-.04em] text-white sm:text-4xl">
-            Your security workspace.
+          <div className="badge-teal mb-2">Project Observatory</div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Security Projects
           </h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Manage your applications, environments, and dependency snapshots in
-            one place.
+          <p className="text-sm text-slate-400 mt-1">
+            Manage applications, environments, and immutable dependency snapshots.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
           <button
             onClick={fetchProjects}
-            className="icon-button"
+            className="btn-secondary !p-2.5"
             title="Refresh projects"
             aria-label="Refresh projects"
           >
             <RefreshCw
-              className={`h-4 w-4 ${loading ? "animate-spin text-teal-300" : ""}`}
+              className={`h-4 w-4 ${loading ? "animate-spin text-teal-400" : "text-slate-300"}`}
             />
           </button>
           <button
             ref={createButtonRef}
             onClick={() => setShowModal(true)}
-            className="button-primary"
+            className="btn-primary !text-xs !py-2.5 !px-4"
           >
-            <Plus className="h-4 w-4" /> New project
+            <Plus className="h-4 w-4" />
+            <span>New Project</span>
           </button>
         </div>
-      </section>
-      <section
-        aria-label="Loaded project overview"
-        className="mt-6 grid gap-3 sm:grid-cols-3"
-      >
+      </div>
+
+      {/* Metrics Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           {
-            label: "Projects in view",
+            label: "Active Projects",
             value: projects.length,
-            note: "Your loaded project inventory",
+            note: "Across your organization",
             icon: FolderKanban,
           },
           {
-            label: "Application assets",
-            value: projects.reduce(
-              (sum, project) => sum + project.asset_count,
-              0,
-            ),
-            note: "Across loaded projects",
+            label: "Monitored Assets",
+            value: projects.reduce((sum, p) => sum + p.asset_count, 0),
+            note: "Production, internal & staging",
             icon: ShieldCheck,
           },
           {
-            label: "Dependency snapshots",
-            value: projects.reduce(
-              (sum, project) => sum + project.snapshot_count,
-              0,
-            ),
-            note: "Across loaded projects",
+            label: "CycloneDX Snapshots",
+            value: projects.reduce((sum, p) => sum + p.snapshot_count, 0),
+            note: "Immutable SBOM graph models",
             icon: Layers3,
           },
         ].map(({ label, value, note, icon: Icon }) => (
-          <article key={label} className="workspace-panel p-5">
+          <div key={label} className="glass-card p-5">
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-slate-400">{label}</p>
-              <Icon className="h-4 w-4 text-teal-300" />
+              <span className="text-xs font-semibold text-slate-400">{label}</span>
+              <Icon className="h-4 w-4 text-teal-400" />
             </div>
-            <p className="mt-3 text-3xl font-semibold tracking-tight text-white">
+            <div className="text-3xl font-mono font-bold text-white mt-2">
               {loading || error ? "—" : value}
-            </p>
-            <p className="mt-2 text-[11px] text-slate-400">{note}</p>
-          </article>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-1">{note}</div>
+          </div>
         ))}
-      </section>
-      <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative max-w-md flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+      </div>
+
+      {/* Filter Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="relative max-w-md w-full">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className="workspace-input pl-9"
-            placeholder="Filter loaded projects"
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full rounded-xl border border-navy-750 bg-navy-950/80 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-slate-500 focus:border-teal-400 focus:outline-none transition-colors"
+            placeholder="Search projects..."
             aria-label="Filter projects"
           />
         </div>
-        <p className="text-xs text-slate-400">
-          {loading
-            ? "Loading projects…"
-            : `${projects.length} loaded ${projects.length === 1 ? "project" : "projects"}`}
-        </p>
+        <span className="text-xs text-slate-400 font-mono">
+          {loading ? "Syncing..." : `${visibleProjects.length} of ${projects.length} displayed`}
+        </span>
       </div>
-      {error ? (
-        <section
-          role="alert"
-          className="mt-6 flex items-start justify-between gap-4 rounded-xl border border-rose-400/30 bg-rose-500/10 p-4 text-rose-100"
-        >
-          <div className="flex gap-3">
-            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-300" />
-            <div>
-              <h2 className="font-semibold">Projects could not be loaded</h2>
-              <p className="mt-1 text-xs text-rose-200/90">{error}</p>
-            </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="flex items-center justify-between p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-200 text-xs">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
+            <span>{error}</span>
           </div>
-          <button
-            onClick={fetchProjects}
-            className="button-secondary border-rose-300/30 px-3 py-2 text-rose-100"
-          >
+          <button onClick={fetchProjects} className="btn-secondary !text-xs !py-1 !px-3">
             Retry
           </button>
-        </section>
-      ) : null}
-      <section className="mt-6">
+        </div>
+      )}
+
+      {/* Project Cards Grid */}
+      <div>
         {loading ? (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {[0, 1, 2].map((index) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[0, 1, 2].map((i) => (
               <div
-                key={index}
-                className="h-48 animate-pulse rounded-2xl border border-navy-800 bg-navy-900/55"
+                key={i}
+                className="h-44 rounded-2xl border border-navy-800 bg-navy-900/40 animate-pulse"
               />
             ))}
           </div>
         ) : error ? null : projects.length === 0 ? (
-          <EmptyState create={() => setShowModal(true)} />
-        ) : visibleProjects.length === 0 ? (
-          <div className="workspace-panel p-10 text-center">
-            <Search className="mx-auto h-6 w-6 text-slate-500" />
-            <h2 className="mt-3 font-semibold text-white">
-              No matching projects
-            </h2>
-            <p className="mt-1 text-xs text-slate-400">
-              Clear the filter or use a different project name.
+          <div className="glass-card p-12 text-center space-y-4">
+            <div className="h-12 w-12 rounded-2xl bg-navy-800 text-slate-400 mx-auto flex items-center justify-center">
+              <FolderKanban className="h-6 w-6" />
+            </div>
+            <h2 className="text-lg font-bold text-white">No projects yet</h2>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Create your first project to begin uploading CycloneDX software bill of materials and mapping dependency risks.
             </p>
-            <button
-              onClick={() => setQuery("")}
-              className="quiet-link mt-4 text-xs"
-            >
-              Clear filter
+            <button onClick={() => setShowModal(true)} className="btn-primary !text-xs !py-2.5">
+              <Plus className="h-4 w-4" />
+              <span>Create First Project</span>
+            </button>
+          </div>
+        ) : visibleProjects.length === 0 ? (
+          <div className="glass-card p-10 text-center space-y-2">
+            <Search className="h-6 w-6 text-slate-500 mx-auto" />
+            <div className="text-sm font-bold text-white">No matching projects found</div>
+            <p className="text-xs text-slate-400">Try adjusting your filter search term.</p>
+            <button onClick={() => setQuery("")} className="text-xs text-teal-400 hover:underline pt-2">
+              Clear Search
             </button>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {visibleProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
+              <Link
+                key={project.id}
+                href={`/projects/${project.id}`}
+                className="glass-card-hover p-6 flex flex-col justify-between group"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <h2 className="text-base font-bold text-white group-hover:text-teal-300 transition-colors line-clamp-1">
+                      {project.name}
+                    </h2>
+                    <ArrowRight className="h-4 w-4 text-slate-500 group-hover:text-teal-400 group-hover:translate-x-1 transition-all shrink-0 mt-1" />
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                    {project.description || "No description provided."}
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-navy-850 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1">
+                      <FolderKanban className="h-3 w-3 text-teal-400" />
+                      {project.asset_count}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Layers3 className="h-3 w-3 text-teal-400" />
+                      {project.snapshot_count}
+                    </span>
+                  </div>
+                  <span className="flex items-center gap-1 text-slate-500">
+                    <CalendarDays className="h-3 w-3" />
+                    {new Date(project.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </Link>
             ))}
           </div>
         )}
-      </section>
+      </div>
+
+      {/* Native Creation Modal */}
       <dialog
         ref={dialogRef}
-        onCancel={(event) => {
-          event.preventDefault();
+        onCancel={(e) => {
+          e.preventDefault();
           if (!creating) closeModal();
         }}
         onClose={() => setShowModal(false)}
-        aria-labelledby="create-project-heading"
-        aria-describedby="create-project-description"
-        className="project-dialog"
+        className="rounded-2xl border border-navy-700/80 bg-navy-900/95 p-6 text-white backdrop-blur-2xl shadow-2xl w-full max-w-md m-auto"
       >
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between pb-4 border-b border-navy-800">
           <div>
-            <p className="eyebrow">New workspace</p>
-            <h2
-              id="create-project-heading"
-              className="mt-1 text-xl font-semibold text-white"
-            >
-              Create a project
-            </h2>
-            <p
-              id="create-project-description"
-              className="mt-2 text-xs leading-5 text-slate-400"
-            >
-              Projects group applications and their immutable dependency
-              snapshots.
-            </p>
+            <div className="badge-teal mb-1.5">New Inventory</div>
+            <h2 className="text-lg font-bold text-white">Create Project</h2>
           </div>
           <button
             disabled={creating}
             onClick={closeModal}
-            className="icon-button"
-            aria-label="Close create project dialog"
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-navy-800 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
+
         {createError && (
-          <div
-            role="alert"
-            className="mt-4 rounded-lg border border-rose-400/30 bg-rose-500/10 p-3 text-xs text-rose-100"
-          >
+          <div className="mt-4 p-3 rounded-lg border border-rose-500/30 bg-rose-500/10 text-xs text-rose-200">
             {createError}
           </div>
         )}
-        <form onSubmit={handleCreateProject} className="mt-6 space-y-4">
+
+        <form onSubmit={handleCreateProject} className="mt-5 space-y-4">
           <div>
-            <label htmlFor="projectName" className="input-label">
-              Project name <span aria-hidden="true">*</span>
+            <label htmlFor="projectName" className="text-xs font-semibold text-slate-300 block mb-1.5">
+              Project Name <span className="text-rose-400">*</span>
             </label>
             <input
               id="projectName"
-              autoFocus
               required
+              autoFocus
               value={name}
-              onChange={(event) => setName(event.target.value)}
-              className="workspace-input"
-              placeholder="e.g. Payments platform"
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Core API Service"
+              className="w-full rounded-xl border border-navy-750 bg-navy-950 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-teal-400 focus:outline-none transition-colors"
             />
           </div>
+
           <div>
-            <label htmlFor="projectDescription" className="input-label">
-              Description{" "}
-              <span className="font-normal text-slate-500">optional</span>
+            <label htmlFor="projectDesc" className="text-xs font-semibold text-slate-300 block mb-1.5">
+              Description <span className="text-slate-500 font-normal">(Optional)</span>
             </label>
             <textarea
-              id="projectDescription"
+              id="projectDesc"
+              rows={3}
               value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              className="workspace-input min-h-24 resize-y"
-              placeholder="What this project contains"
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Scope of applications and dependencies in this project..."
+              className="w-full rounded-xl border border-navy-750 bg-navy-950 px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-teal-400 focus:outline-none transition-colors resize-none"
             />
           </div>
-          <div className="flex justify-end gap-3 border-t border-navy-700/70 pt-5">
+
+          <div className="pt-4 border-t border-navy-800 flex items-center justify-end gap-2.5">
             <button
               type="button"
               disabled={creating}
               onClick={closeModal}
-              className="button-secondary"
+              className="btn-secondary !text-xs !py-2"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={creating || !name.trim()}
-              className="button-primary disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn-primary !text-xs !py-2"
             >
-              {creating ? "Creating…" : "Create project"}
+              {creating ? "Creating..." : "Create Project"}
             </button>
           </div>
         </form>
       </dialog>
     </div>
-  );
-}
-
-function EmptyState({ create }: { create: () => void }) {
-  return (
-    <div className="workspace-panel p-10 text-center sm:p-16">
-      <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-navy-800 text-slate-400">
-        <FolderKanban className="h-6 w-6" />
-      </span>
-      <h2 className="mt-4 text-lg font-semibold text-white">No projects yet</h2>
-      <p className="mx-auto mt-2 max-w-sm text-xs leading-5 text-slate-400">
-        Create a project before adding applications and CycloneDX inventories.
-        Nothing has been scanned or scored yet.
-      </p>
-      <button onClick={create} className="button-primary mx-auto mt-6">
-        <Plus className="h-4 w-4" /> Create first project
-      </button>
-    </div>
-  );
-}
-function ProjectCard({ project }: { project: Project }) {
-  return (
-    <Link href={`/projects/${project.id}`} className="project-card group">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="line-clamp-1 text-lg font-semibold text-white group-hover:text-teal-200">
-            {project.name}
-          </h2>
-          <p className="mt-2 min-h-10 line-clamp-2 text-xs leading-5 text-slate-400">
-            {project.description || "No project description provided."}
-          </p>
-        </div>
-        <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-teal-300" />
-      </div>
-      <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2 border-t border-navy-700/70 pt-4 text-[11px] text-slate-400">
-        <span className="inline-flex items-center gap-1.5">
-          <FolderKanban className="h-3.5 w-3.5 text-teal-300" />{" "}
-          {project.asset_count} {project.asset_count === 1 ? "asset" : "assets"}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <Layers3 className="h-3.5 w-3.5 text-teal-300" />{" "}
-          {project.snapshot_count}{" "}
-          {project.snapshot_count === 1 ? "snapshot" : "snapshots"}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <CalendarDays className="h-3.5 w-3.5" />{" "}
-          {new Date(project.created_at).toLocaleDateString()}
-        </span>
-      </div>
-    </Link>
   );
 }

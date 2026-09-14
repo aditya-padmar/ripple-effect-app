@@ -16,6 +16,10 @@ import {
   SlidersHorizontal,
   Sparkles,
   Waypoints,
+  Sliders,
+  Shield,
+  Layers,
+  ArrowRight,
 } from "lucide-react";
 import {
   evaluateScenario,
@@ -25,420 +29,401 @@ import {
   statusForAsset,
   type PayloadMode,
 } from "@/features/scenario/evaluator";
-
 import { DependencyMap } from "@/features/scenario/DependencyMap";
 
-const statusStyle = {
-  exposed: "border-rose-400/35 bg-rose-500/10 text-rose-200",
-  unknown: "border-amber-400/35 bg-amber-500/10 text-amber-100",
-  "not-reached": "border-teal-400/25 bg-teal-500/5 text-teal-100",
+const statusTone = {
+  exposed: {
+    badge: "border-rose-500/30 bg-rose-500/10 text-rose-300",
+    dot: "bg-rose-400",
+    label: "Exposed",
+  },
+  unknown: {
+    badge: "border-amber-500/30 bg-amber-500/10 text-amber-300",
+    dot: "bg-amber-400",
+    label: "Unknown Gate",
+  },
+  "not-reached": {
+    badge: "border-teal-500/30 bg-teal-500/10 text-teal-300",
+    dot: "bg-teal-400",
+    label: "Not Reached",
+  },
 };
 
 export default function DemoPage() {
   const [mode, setMode] = useState<PayloadMode>("runtime");
   const [scriptsDisabled, setScriptsDisabled] = useState(true);
   const [budget, setBudget] = useState(0);
+
   const base = useMemo(
     () => evaluateScenario({ mode, scriptsDisabled }),
-    [mode, scriptsDisabled],
+    [mode, scriptsDisabled]
   );
   const plan = useMemo(
     () => optimizeMitigations(budget, mode, scriptsDisabled),
-    [budget, mode, scriptsDisabled],
+    [budget, mode, scriptsDisabled]
   );
+
   const [selectedId, setSelectedId] = useState(scenario.assets[0].asset_id);
   const selected =
     (budget ? plan.result : base).assets.find(
-      (item) => item.asset.asset_id === selectedId,
+      (item) => item.asset.asset_id === selectedId
     ) ?? base.assets[0];
+
   const result = budget ? plan.result : base;
+
   const exportReport = () => {
     const report = [
-      "RippleGuard — synthetic scenario report",
+      "RippleGuard — Synthetic Scenario Report",
+      "=======================================",
       scenario.disclaimer,
-      `Mode: ${mode}`,
-      `Billing lifecycle scripts disabled: ${scriptsDisabled}`,
-      `Exposure: ${result.lowerWeight}/${result.totalWeight} lower; ${result.upperWeight}/${result.totalWeight} upper`,
-      `Budget: ${budget}; selected cost: ${plan.cost}`,
-      "Controls:",
+      "",
+      `Payload Mode: ${mode}`,
+      `Billing Lifecycle Scripts Disabled: ${scriptsDisabled}`,
+      `Exposure Bound: ${result.lowerWeight}/${result.totalWeight} lower (${percentage(result.lowerWeight, result.totalWeight)}); ${result.upperWeight}/${result.totalWeight} upper (${percentage(result.upperWeight, result.totalWeight)})`,
+      `Effort Budget: ${budget} pts; Selected Plan Cost: ${plan.cost} pts`,
+      "",
+      "Selected Mitigations:",
       ...plan.controls.map(
-        (control) => `- ${control.label} (${control.cost} effort)`,
+        (control) => `- ${control.label} (${control.cost} pts effort): ${control.assumptions[0]}`
       ),
       "",
-      "This report contains deterministic fixture results only; it is not a scan or advisory.",
+      "Asset Evaluation:",
+      ...result.assets.map((reach) => {
+        const s = statusForAsset(reach);
+        return `- ${reach.asset.name} (${reach.asset.environment}, wt ${reach.asset.weight}): ${s.toUpperCase()} (paths: ${reach.paths.length})`;
+      }),
+      "",
+      "This report contains deterministic synthetic fixture results only. Not a live scan.",
     ].join("\n");
+
     const url = URL.createObjectURL(new Blob([report], { type: "text/plain" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "rippleguard-synthetic-report.txt";
+    anchor.download = "rippleguard-scenario-report.txt";
     anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
-  const changeMode = (next: PayloadMode) => {
-    setMode(next);
-  };
+
+  const selectedStatus = statusForAsset(selected);
 
   return (
-    <div className="flex-1 bg-navy-950">
-      <div className="synthetic-banner">
-        <FlaskConical className="h-4 w-4" />{" "}
-        <strong>Synthetic scenario — not a real scan.</strong>
-        <span>
-          Fixture-only paths, weights, and hypothetical advisory context. No
-          external calls.
-        </span>
+    <div className="min-h-screen bg-navy-950 pb-20 text-slate-100">
+      {/* Synthetic Disclaimer Banner */}
+      <div className="border-b border-teal-500/20 bg-teal-500/10 px-4 py-2 text-center text-xs text-teal-300">
+        <div className="mx-auto flex max-w-7xl items-center justify-center gap-2">
+          <FlaskConical className="h-4 w-4 shrink-0 text-teal-400" />
+          <span className="font-bold">Synthetic Scenario Lab:</span>
+          <span className="text-slate-300">
+            Running from immutable fixture topology. No production dependencies are executed or altered.
+          </span>
+        </div>
       </div>
-      <div className="mx-auto w-full max-w-[1440px] px-4 py-7 sm:px-6 lg:px-8">
-        <div className="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+
+      <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
+        {/* Navigation & Header */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-8">
           <div>
             <Link
               href="/"
-              className="quiet-link mb-3 inline-flex items-center gap-1.5 text-xs"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-teal-300 transition-colors mb-2"
             >
-              <ArrowLeft className="h-3.5 w-3.5" /> Observatory
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to Overview</span>
             </Link>
-            <p className="eyebrow">Public fixture laboratory</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-.035em] text-white sm:text-4xl">
-              The scenario lab<span className="text-teal-300">.</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-300 mb-2">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>Interactive Experimentation Sandbox</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              Scenario Analysis Lab
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-              Change the payload. Follow the impact. Find the repair that fits
-              your budget.
+            <p className="mt-1 text-sm text-slate-400 max-w-2xl">
+              Switch attack assumptions, observe downstream reachability, and optimize preventative
+              controls within an engineering effort budget.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={exportReport} className="button-secondary">
-              <ArrowDownToLine className="h-4 w-4" /> Export fixture report
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={exportReport}
+              className="btn-secondary !text-xs !py-2.5 !px-4"
+              title="Download text report"
+            >
+              <ArrowDownToLine className="h-4 w-4" />
+              <span>Export Report</span>
             </button>
-            <Link href="/signup" className="button-primary">
-              Analyze your project <ChevronRight className="h-4 w-4" />
+            <Link href="/signup" className="btn-primary !text-xs !py-2.5 !px-4">
+              <span>Analyze Your App</span>
+              <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
 
-        <section
-          className="lab-controls"
-          aria-label="Synthetic scenario controls"
-        >
-          <div>
-            <p className="control-label">Payload assumption</p>
-            <div className="segmented" role="group" aria-label="Payload mode">
+        {/* Control Deck (Payload Switcher, Lifecycle Script Gate, Exposure Metric) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 rounded-2xl border border-navy-700/80 bg-navy-900/80 p-5 backdrop-blur-xl mb-8">
+          {/* 1. Payload Mode */}
+          <div className="space-y-2">
+            <label className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 block">
+              1. Attack Payload Assumption
+            </label>
+            <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-navy-950 p-1 border border-navy-800">
               <button
-                aria-pressed={mode === "runtime"}
-                onClick={() => changeMode("runtime")}
+                onClick={() => setMode("runtime")}
+                className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                  mode === "runtime"
+                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
               >
                 Runtime Attack
               </button>
               <button
-                aria-pressed={mode === "install"}
-                onClick={() => changeMode("install")}
+                onClick={() => setMode("install")}
+                className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all ${
+                  mode === "install"
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-white"
+                }`}
               >
-                Install-script Only
+                Install-Script Only
               </button>
             </div>
+            <p className="text-[11px] text-slate-500 leading-tight">
+              {mode === "runtime"
+                ? "Malicious runtime code bypasses build-only safeguards."
+                : "Simulation restricted to npm pre/postinstall execution."}
+            </p>
           </div>
-          <div className="border-t border-navy-700/70 pt-4 md:border-l md:border-t-0 md:pl-6 md:pt-0">
-            <p className="control-label">Billing lifecycle scripts</p>
+
+          {/* 2. Billing Lifecycle Script Gate */}
+          <div className="space-y-2 md:border-l md:border-navy-800 md:pl-5">
+            <label className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 block">
+              2. Billing Lifecycle Script Gate
+            </label>
             <button
               disabled={mode === "runtime"}
-              aria-pressed={scriptsDisabled}
               onClick={() => setScriptsDisabled(!scriptsDisabled)}
-              className="switch-row"
+              className={`w-full py-2 px-3 rounded-xl border flex items-center justify-between transition-all ${
+                scriptsDisabled
+                  ? "border-teal-500/40 bg-teal-500/10 text-teal-300"
+                  : "border-rose-500/40 bg-rose-500/10 text-rose-300"
+              } ${mode === "runtime" ? "opacity-50 cursor-not-allowed" : ""}`}
             >
-              <span className={`switch-dot ${scriptsDisabled ? "on" : ""}`} />{" "}
-              {scriptsDisabled ? "Disabled" : "Enabled"}
+              <span className="text-xs font-semibold">
+                {scriptsDisabled ? "Scripts Disabled (--ignore-scripts)" : "Scripts Enabled (Unsafe)"}
+              </span>
+              <span className={`h-2.5 w-2.5 rounded-full ${scriptsDisabled ? "bg-teal-400" : "bg-rose-400 animate-pulse"}`} />
             </button>
-            <p className="mt-1.5 text-[11px] text-slate-400">
+            <p className="text-[11px] text-slate-500 leading-tight">
               {mode === "runtime"
-                ? "Runtime does not depend on lifecycle scripts."
-                : "Only blocks Billing’s fixture install-script path."}
+                ? "Disabled: Runtime execution is unaffected by build script toggles."
+                : "Toggling alters install-script reachability for billing-api."}
             </p>
           </div>
-          <div className="border-t border-navy-700/70 pt-4 md:border-l md:border-t-0 md:pl-6 md:pt-0">
-            <p className="control-label">Weighted exposure</p>
-            <div className="flex items-end gap-2">
-              <strong
-                className="text-2xl tracking-tight text-white"
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                {percentage(result.lowerWeight, result.totalWeight)}–
-                {percentage(result.upperWeight, result.totalWeight)}
-              </strong>
+
+          {/* 3. Real-time Exposure Metric */}
+          <div className="space-y-2 md:border-l md:border-navy-800 md:pl-5">
+            <label className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 block">
+              3. Weighted Blast-Radius
+            </label>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-mono font-extrabold text-white">
+                {percentage(result.lowerWeight, result.totalWeight)} – {percentage(result.upperWeight, result.totalWeight)}
+              </span>
+              <span className="text-xs font-mono text-slate-400">
+                ({result.lowerWeight} to {result.upperWeight} / {result.totalWeight} pts)
+              </span>
             </div>
-            <p className="mt-1 text-[11px] text-slate-400">
-              lower {result.lowerWeight}/{result.totalWeight} · upper{" "}
-              {result.upperWeight}/{result.totalWeight}
-            </p>
+            <div className="w-full bg-navy-950 h-2 rounded-full overflow-hidden border border-navy-800">
+              <div
+                className="bg-gradient-to-r from-rose-500 to-amber-400 h-full rounded-full transition-all duration-300"
+                style={{ width: percentage(result.upperWeight, result.totalWeight) }}
+              />
+            </div>
           </div>
-        </section>
-
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_330px]">
-          <section className="workspace-panel p-4 sm:p-6">
-            <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-              <div>
-                <p className="eyebrow">Propagation map</p>
-                <h2 className="mt-1 text-lg font-semibold text-white">
-                  Selected route: {selected.asset.name}
-                </h2>
-              </div>
-              <div className="legend">
-                <span>
-                  <i className="dot exposed" /> Exposed
-                </span>
-                <span>
-                  <i className="dot unknown" /> Unknown gate
-                </span>
-                <span>
-                  <i className="dot bg-slate-400" /> Not reached
-                </span>
-              </div>
-            </div>
-            <DependencyMap
-              selectedId={selectedId}
-              result={result}
-              onSelect={setSelectedId}
-            />
-            <p className="mt-3 text-xs leading-5 text-slate-400">
-              Impact flows left to right; bright lines highlight the selected
-              asset’s active paths. Muted lines retain inventory context.
-              Checkout has two routes:{" "}
-              <b className="font-medium text-slate-300">shared-http</b> and{" "}
-              <b className="font-medium text-slate-300">auth-helper</b>. The
-              same auth-helper occurrence also connects Admin. Amber dashed
-              links are documentation gates: included only in the upper bound.
-            </p>
-            <section
-              className="mt-4 rounded-xl border border-slate-700/60 bg-navy-950/60 p-4"
-              aria-labelledby="path-evidence-heading"
-            >
-              <h3
-                id="path-evidence-heading"
-                className="text-xs font-semibold text-slate-200"
-              >
-                Declared dependency paths · {selected.asset.name}
-              </h3>
-              {selected.paths.length ? (
-                <ol className="mt-3 space-y-2">
-                  {selected.paths.map((path, index) => (
-                    <li
-                      key={path.map((edge) => edge.id).join("/")}
-                      className="text-[11px] leading-6 text-slate-400"
-                    >
-                      <span className="mr-2 font-mono text-teal-300">
-                        {String(index + 1).padStart(2, "0")}
-                      </span>
-                      <span className="break-words font-mono text-slate-200">
-                        {[
-                          path[0].from_ref,
-                          ...path.map((edge) => edge.to_ref),
-                        ].join(" → ")}
-                      </span>
-                      <span className="mt-1 block">
-                        {path.some((edge) => edge.gate_default === "unknown")
-                          ? "Upper bound only · unknown execution gates"
-                          : "Lower and upper bounds · all execution gates true"}{" "}
-                        · provenance: fixture-manifest
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              ) : (
-                <p className="mt-2 text-xs leading-5 text-slate-400">
-                  No eligible path to the assumed source under the current mode
-                  and controls. This is not evidence that the asset is safe.
-                </p>
-              )}
-            </section>
-          </section>
-
-          <aside className="space-y-4">
-            <section className="workspace-panel p-4">
-              <div className="flex items-center gap-2">
-                <Waypoints className="h-4 w-4 text-teal-300" />
-                <h2 className="font-semibold text-white">Asset reachability</h2>
-              </div>
-              <div className="mt-3 space-y-2">
-                {result.assets.map((reach) => {
-                  const status = statusForAsset(reach);
-                  return (
-                    <button
-                      key={reach.asset.asset_id}
-                      onClick={() => setSelectedId(reach.asset.asset_id)}
-                      aria-pressed={selectedId === reach.asset.asset_id}
-                      className={`asset-row ${selectedId === reach.asset.asset_id ? "selected" : ""}`}
-                    >
-                      <span
-                        className={`status-mark ${status}`}
-                        aria-hidden="true"
-                      />
-                      <span className="min-w-0 flex-1 text-left">
-                        <b>{reach.asset.name}</b>
-                        <small>
-                          {reach.asset.environment} · weight{" "}
-                          {reach.asset.weight}
-                        </small>
-                      </span>
-                      <span className="text-[10px] font-semibold uppercase">
-                        {status === "not-reached" ? "Not reached" : status}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-            <section
-              className={`rounded-xl border p-4 ${statusStyle[statusForAsset(selected)]}`}
-            >
-              <p className="flex items-center gap-2 text-xs font-semibold">
-                <CircleHelp className="h-4 w-4" /> Why this status
-              </p>
-              <p className="mt-2 text-xs leading-5">
-                {statusForAsset(selected) === "exposed"
-                  ? `${selected.asset.name} has a true-gated path to the synthetic source package in this assumption.`
-                  : statusForAsset(selected) === "unknown"
-                    ? `${selected.asset.name} has only unknown-gated paths. It affects the upper bound, not the lower bound.`
-                    : `${selected.asset.name} has no modeled route to the source package. “Not reached” is not a safety claim.`}
-              </p>
-            </section>
-          </aside>
         </div>
 
-        <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_370px]">
-          <div className="workspace-panel p-5 sm:p-6">
-            <div className="flex items-start gap-3">
-              <SlidersHorizontal className="mt-0.5 h-5 w-5 text-teal-300" />
+        {/* Visual Topology & Asset Reachability Explorer */}
+        <div className="space-y-6">
+          <DependencyMap
+            result={result}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
+        </div>
+
+        {/* Selected Asset Witness Routes & Gate Evidence */}
+        <div className="mt-8 rounded-2xl border border-navy-700/80 bg-navy-900/80 p-6 backdrop-blur-xl">
+          <div className="flex items-center justify-between pb-4 border-b border-navy-800 mb-4">
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <span>Declared Dependency Witness Routes</span>
+                <span className="text-teal-400 font-mono text-xs">({selected.asset.name})</span>
+              </h2>
+              <p className="text-xs text-slate-400">
+                Target environment: <span className="text-slate-200 font-semibold">{selected.asset.environment}</span> · Weight: <span className="text-slate-200 font-semibold">{selected.asset.weight}</span> · Status: <span className={`font-semibold ${statusTone[selectedStatus].badge} px-2 py-0.5 rounded border`}>{statusTone[selectedStatus].label}</span>
+              </p>
+            </div>
+          </div>
+
+          {selected.paths.length > 0 ? (
+            <div className="space-y-3">
+              {selected.paths.map((path, idx) => (
+                <div
+                  key={path.map((edge) => edge.id).join("-")}
+                  className="p-3.5 rounded-xl border border-navy-800 bg-navy-950/80 font-mono text-xs"
+                >
+                  <div className="flex items-center gap-2 text-teal-300 font-bold mb-1.5">
+                    <span>Route #{idx + 1}:</span>
+                    <span className="text-slate-400 font-normal">
+                      {path.some((e) => e.gate_default === "unknown")
+                        ? "Upper Bound Only (Unknown Gates Present)"
+                        : "Lower & Upper Bound (All Gates Verified True)"}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 text-slate-200">
+                    <span className="text-rose-400 font-bold">{path[0].from_ref}</span>
+                    {path.map((edge) => (
+                      <React.Fragment key={edge.id}>
+                        <ArrowRight className="h-3 w-3 text-slate-600" />
+                        <span className="text-slate-300">{edge.to_ref}</span>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl border border-teal-500/20 bg-teal-500/5 text-xs text-teal-300">
+              No active witness route reaches {selected.asset.name} under current scenario gates and applied controls.
+            </div>
+          )}
+        </div>
+
+        {/* Effort-Budgeted Mitigation Optimizer Section */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Controls Selector (Cols 8) */}
+          <div className="lg:col-span-8 rounded-2xl border border-navy-700/80 bg-navy-900/80 p-6 backdrop-blur-xl">
+            <div className="flex items-center justify-between pb-4 border-b border-navy-800 mb-5">
               <div>
-                <p className="eyebrow">Effort-budgeted mitigation</p>
-                <h2 className="mt-1 text-lg font-semibold text-white">
-                  The most impact within your budget.
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <Sliders className="h-4 w-4 text-teal-400" />
+                  <span>Effort-Budgeted Mitigation Optimizer</span>
                 </h2>
-                <p className="mt-1 text-xs leading-5 text-slate-400">
-                  The planner evaluates combinations of fixture controls. It
-                  prioritizes the upper bound, then the lower bound, and only
-                  selects controls within the stated effort budget.
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Slide your engineering budget to automatically discover the highest-impact repair combination.
                 </p>
               </div>
             </div>
-            <div className="mt-5 flex items-center gap-4">
-              <label className="sr-only" htmlFor="budget">
-                Mitigation effort budget
-              </label>
+
+            {/* Slider */}
+            <div className="space-y-2 mb-6">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-slate-400">Engineering Effort Budget:</span>
+                <span className="text-teal-300 font-bold text-sm">{budget} Story Points</span>
+              </div>
               <input
-                id="budget"
-                aria-describedby="budget-help"
                 type="range"
                 min="0"
                 max="7"
                 value={budget}
-                onChange={(event) => setBudget(Number(event.target.value))}
-                className="accent-teal-400 w-full"
+                onChange={(e) => setBudget(Number(e.target.value))}
+                className="w-full h-2 bg-navy-950 rounded-lg appearance-none cursor-pointer accent-teal-400 border border-navy-800"
               />
-              <strong className="whitespace-nowrap text-sm text-teal-200">
-                {budget} pts
-              </strong>
+              <div className="flex justify-between text-[10px] font-mono text-slate-500">
+                <span>0 pts (Baseline)</span>
+                <span>2 pts</span>
+                <span>4 pts</span>
+                <span>7 pts (Max)</span>
+              </div>
             </div>
-            <p id="budget-help" className="mt-2 text-[11px] text-slate-400">
-              Selected plan cost: {plan.cost} points. A 0-point budget leaves
-              the modeled baseline unchanged.
-            </p>
-            <div className="mt-5 grid gap-2">
+
+            {/* Candidate Controls List */}
+            <div className="space-y-3">
               {scenario.candidate_controls.map((control) => {
-                const chosen = plan.controls.some(
-                  (item) => item.id === control.id,
-                );
+                const isSelected = plan.controls.some((c) => c.id === control.id);
                 return (
                   <div
                     key={control.id}
-                    className={`control-card ${chosen ? "chosen" : ""}`}
+                    className={`p-3.5 rounded-xl border transition-all flex items-start justify-between gap-3 ${
+                      isSelected
+                        ? "border-teal-500/50 bg-teal-500/10 shadow-glow-teal"
+                        : "border-navy-800 bg-navy-950/60 opacity-70"
+                    }`}
                   >
-                    <span className="mt-0.5">
-                      {chosen ? (
-                        <Check className="h-4 w-4 text-teal-300" />
-                      ) : (
-                        <span className="block h-4 w-4 rounded border border-navy-600" />
-                      )}
-                    </span>
-                    <div>
-                      <b>{control.label}</b>
-                      <p>{control.assumptions[0]}</p>
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`mt-0.5 h-4 w-4 rounded flex items-center justify-center border ${
+                          isSelected
+                            ? "border-teal-400 bg-teal-400 text-navy-950"
+                            : "border-navy-700 bg-navy-900"
+                        }`}
+                      >
+                        {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white">{control.label}</div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          {control.assumptions[0]}
+                        </div>
+                      </div>
                     </div>
-                    <span className="cost">{control.cost} pts</span>
+                    <span className="text-[11px] font-mono font-semibold px-2 py-0.5 rounded border border-navy-700 bg-navy-900 text-slate-300 shrink-0">
+                      Cost: {control.cost} pts
+                    </span>
                   </div>
                 );
               })}
             </div>
           </div>
-          <aside className="workspace-panel flex flex-col justify-between p-5 sm:p-6">
-            <div>
-              <div className="flex items-center gap-2 text-teal-300">
-                <Braces className="h-5 w-5" />
-                <p className="eyebrow text-teal-200">Plan result</p>
-              </div>
-              <p className="mt-3 text-3xl font-semibold tracking-tight text-white">
-                {percentage(plan.result.lowerWeight, plan.result.totalWeight)}–
-                {percentage(plan.result.upperWeight, plan.result.totalWeight)}
-              </p>
-              <p className="mt-1 text-xs text-slate-400">
-                {plan.result.lowerWeight}/{plan.result.totalWeight} lower ·{" "}
-                {plan.result.upperWeight}/{plan.result.totalWeight} upper
-              </p>
-            </div>
-            <div className="mt-6 border-t border-navy-700/70 pt-4">
-              <p className="text-xs font-semibold text-white">
-                Semantics to retain
-              </p>
-              <ul className="mt-2 space-y-2 text-xs leading-5 text-slate-400">
-                <li>
-                  • Route exclusions affect every asset using that shared
-                  occurrence edge.
-                </li>
-                <li>
-                  • The Billing scripts control is meaningful only for
-                  install-script payloads.
-                </li>
-                <li>
-                  • Replacement is modeled as a global source-occurrence
-                  removal, not verification evidence.
-                </li>
-              </ul>
-            </div>
-          </aside>
-        </section>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-4">
-          <article className="feature-note">
-            <Layers3 className="h-5 w-5" />
-            <h2>SBOM ingestion</h2>
-            <p>
-              CycloneDX inventories provide the dependency topology used for
-              analysis.
-            </p>
-          </article>
-          <article className="feature-note">
-            <FileWarning className="h-5 w-5" />
-            <h2>OSV advisory mapping</h2>
-            <p>
-              Production workflows can map published advisory evidence; this
-              demo has none.
-            </p>
-          </article>
-          <article className="feature-note">
-            <Sparkles className="h-5 w-5" />
-            <h2>Blast-radius simulation</h2>
-            <p>
-              True and unknown execution gates produce explainable lower and
-              upper bounds.
-            </p>
-          </article>
-          <article className="feature-note">
-            <ShieldAlert className="h-5 w-5" />
-            <h2>Mitigation planning</h2>
-            <p>
-              Compare explicit controls against an engineering effort budget.
-            </p>
-          </article>
-        </section>
+          {/* Optimized Plan Summary (Cols 4) */}
+          <div className="lg:col-span-4 rounded-2xl border border-navy-700/80 bg-navy-900/80 p-6 backdrop-blur-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-teal-400 mb-4">
+                <Braces className="h-5 w-5" />
+                <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-teal-300">
+                  Optimized Plan Result
+                </h3>
+              </div>
+
+              <div className="p-4 rounded-xl border border-navy-800 bg-navy-950/90 space-y-3 mb-6">
+                <div>
+                  <span className="text-xs text-slate-400">Resulting Exposure:</span>
+                  <div className="text-3xl font-mono font-bold text-white mt-1">
+                    {percentage(plan.result.lowerWeight, plan.result.totalWeight)}
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-400 mt-0.5">
+                    Upper bound: {percentage(plan.result.upperWeight, plan.result.totalWeight)}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-navy-800 text-xs font-mono space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Budget Allocated:</span>
+                    <span className="text-slate-200">{budget} pts</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Total Plan Cost:</span>
+                    <span className="text-teal-400 font-bold">{plan.cost} pts</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Selected Controls:</span>
+                    <span className="text-slate-200">{plan.controls.length} applied</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl border border-navy-800 bg-navy-950/60 text-xs text-slate-400 space-y-2">
+              <div className="font-semibold text-slate-300">Model Guarantees:</div>
+              <p className="text-[11px] leading-relaxed">
+                Mitigation evaluations are simulated mathematically on a scenario copy. Real project inventories and live Git repositories are never mutated.
+              </p>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

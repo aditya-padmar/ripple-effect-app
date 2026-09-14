@@ -1,31 +1,44 @@
 "use client";
 
-import { useId } from "react";
-import { ArrowDown, Package, Server } from "lucide-react";
-import { scenario, statusForAsset, type ScenarioResult } from "./evaluator";
+import React from "react";
+import {
+  Flame,
+  Layers,
+  Server,
+  ArrowRight,
+  ShieldCheck,
+  AlertTriangle,
+  Lock,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
+import {
+  scenario,
+  statusForAsset,
+  type ScenarioResult,
+} from "./evaluator";
 
-const tones = {
+const statusTone = {
   exposed: {
-    stroke: "#fb7185",
-    fill: "#251322",
-    label: "Reached · true gates",
+    badge: "bg-rose-500/10 text-rose-300 border-rose-500/30",
+    border: "border-rose-500/40 bg-rose-500/5",
+    dot: "bg-rose-400",
+    label: "Exposed",
   },
   unknown: {
-    stroke: "#fbbf24",
-    fill: "#241f19",
-    label: "Possible · unknown gates",
+    badge: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+    border: "border-amber-500/40 bg-amber-500/5",
+    dot: "bg-amber-400",
+    label: "Unknown Gate",
   },
   "not-reached": {
-    stroke: "#7890ac",
-    fill: "#111d2e",
-    label: "Not reached in model",
+    badge: "bg-teal-500/10 text-teal-300 border-teal-500/30",
+    border: "border-teal-500/40 bg-teal-500/5",
+    dot: "bg-teal-400",
+    label: "Not Reached",
   },
 };
 
-/** Fixture topology is drawn dependency → dependent (the direction of modeled impact).
- * Muted links preserve inventory context; bright links are currently reachable paths.
- * Mobile uses an equivalent, fully labelled asset list instead of microscopic SVG text.
- */
 export function DependencyMap({
   result,
   selectedId,
@@ -37,301 +50,182 @@ export function DependencyMap({
   onSelect?: (id: string) => void;
   compact?: boolean;
 }) {
-  const id = useId().replace(/:/g, "");
-  const source = scenario.source_package.local_ref;
-  const dependencies = scenario.occurrences.filter(
-    (item) => item.local_ref !== source,
+  const sourceRef = scenario.source_package.local_ref;
+  const isSourceReplaced = result.controls.some(
+    (c) => c.control_type === "replace_occurrence"
   );
-  const rows = Math.max(dependencies.length, scenario.assets.length);
-  const height = rows * 72 + 48;
-  const positions = new Map<string, { x: number; y: number; width: number }>();
-  positions.set(source, { x: 20, y: height / 2 - 26, width: 156 });
-  dependencies.forEach((item, index) =>
-    positions.set(item.local_ref, { x: 278, y: 38 + index * 72, width: 168 }),
-  );
-  scenario.assets.forEach((asset, index) =>
-    positions.set(asset.root_ref, { x: 562, y: 38 + index * 72, width: 188 }),
-  );
-  const highlighted = new Set(
-    result.assets
-      .filter((reach) => !selectedId || reach.asset.asset_id === selectedId)
-      .flatMap((reach) =>
-        reach.paths.flatMap((path) => path.map((edge) => edge.id)),
-      ),
-  );
-  const sourceRemoved = result.controls.some(
-    (control) => control.control_type === "replace_occurrence",
-  );
-  const focusedRefs = new Set(
-    result.assets
-      .filter((reach) => !selectedId || reach.asset.asset_id === selectedId)
-      .flatMap((reach) =>
-        reach.paths.flatMap((path) =>
-          path.flatMap((edge) => [edge.from_ref, edge.to_ref]),
-        ),
-      ),
-  );
-  const assetButtons = result.assets.map((reach) => {
-    const status = statusForAsset(reach);
-    const inner = (
-      <>
-        <Server
-          className="h-4 w-4 shrink-0"
-          style={{ color: tones[status].stroke }}
-        />
-        <span className="flex-1 text-left">
-          <strong className="block text-xs font-semibold text-slate-100">
-            {reach.asset.name}
-          </strong>
-          <span className="text-[11px] text-slate-400">
-            {tones[status].label} · weight {reach.asset.weight}
-          </span>
-        </span>
-        {status === "unknown" && (
-          <span className="text-xs text-amber-300">?</span>
-        )}
-      </>
-    );
-    return onSelect ? (
-      <button
-        key={reach.asset.asset_id}
-        aria-pressed={selectedId === reach.asset.asset_id}
-        onClick={() => onSelect(reach.asset.asset_id)}
-        className="flex w-full items-center gap-3 rounded-lg border border-slate-700/70 bg-navy-900 px-3 py-2.5 aria-pressed:border-teal-300"
-      >
-        {inner}
-      </button>
-    ) : (
-      <li
-        key={reach.asset.asset_id}
-        className="flex items-center gap-3 rounded-lg border border-slate-700/70 bg-navy-900 px-3 py-2.5"
-      >
-        {inner}
-      </li>
-    );
-  });
 
   return (
-    <div
-      className={`dependency-map ${compact ? "dependency-map-compact" : ""}`}
-    >
-      <div className="hidden sm:block">
-        <svg
-          viewBox={`0 0 770 ${height}`}
-          className="h-auto w-full"
-          role="img"
-          aria-labelledby={`${id}-title ${id}-desc`}
-        >
-          <title id={`${id}-title`}>Synthetic dependency impact map</title>
-          <desc id={`${id}-desc`}>
-            Impact flows from {scenario.source_package.name} through shared
-            dependencies to enterprise assets. Bright paths show{" "}
-            {selectedId ? "the selected asset's" : "all"} modeled reachable
-            routes. Dashed amber paths have unknown gates. Muted edges show
-            inventory context, not active exposure.{" "}
-            {result.assets
-              .map(
-                (reach) =>
-                  `${reach.asset.name}: ${tones[statusForAsset(reach)].label}`,
-              )
-              .join(". ")}
-            .
-          </desc>
-          <defs>
-            <pattern
-              id={`${id}-dots`}
-              width="18"
-              height="18"
-              patternUnits="userSpaceOnUse"
-            >
-              <circle cx="1" cy="1" r=".7" fill="#354662" opacity=".6" />
-            </pattern>
-            <marker
-              id={`${id}-arrow`}
-              viewBox="0 0 10 10"
-              refX="8"
-              refY="5"
-              markerWidth="5"
-              markerHeight="5"
-              orient="auto-start-reverse"
-            >
-              <path
-                d="M 1 1 L 9 5 L 1 9"
-                fill="none"
-                stroke="context-stroke"
-                strokeWidth="1.5"
-              />
-            </marker>
-          </defs>
-          <rect width="770" height={height} fill={`url(#${id}-dots)`} />
-          <text x="20" y="19" fill="#91a4be" fontSize="10" letterSpacing="1.5">
-            ASSUMED SOURCE
-          </text>
-          <text x="278" y="19" fill="#91a4be" fontSize="10" letterSpacing="1.5">
-            DEPENDENCY ROUTES
-          </text>
-          <text x="562" y="19" fill="#91a4be" fontSize="10" letterSpacing="1.5">
-            ENTERPRISE ASSETS
-          </text>
-          {!sourceRemoved && (
-            <g className="source-rings" aria-hidden="true">
-              <circle
-                cx="98"
-                cy={height / 2}
-                r="81"
-                fill="none"
-                stroke="#f43f5e"
-                strokeOpacity=".16"
-              />
-              <circle
-                cx="98"
-                cy={height / 2}
-                r="111"
-                fill="none"
-                stroke="#f43f5e"
-                strokeOpacity=".08"
-              />
-            </g>
-          )}
-          {scenario.edges.map((edge) => {
-            const from = positions.get(edge.to_ref),
-              to = positions.get(edge.from_ref);
-            if (!from || !to) return null;
-            const active = highlighted.has(edge.id);
-            const stroke = active
-              ? edge.gate_default === "unknown"
-                ? "#fbbf24"
-                : "#fb7185"
-              : "#33435b";
-            const x1 = from.x + from.width,
-              y1 = from.y + 26,
-              x2 = to.x - 5,
-              y2 = to.y + 26;
-            return (
-              <path
-                key={edge.id}
-                d={`M${x1},${y1} C${x1 + 52},${y1} ${x2 - 52},${y2} ${x2},${y2}`}
-                fill="none"
-                stroke={stroke}
-                strokeWidth={active ? 2 : 1.2}
-                strokeDasharray={
-                  edge.gate_default === "unknown" ? "5 5" : undefined
-                }
-                markerEnd={`url(#${id}-arrow)`}
-                className={active ? "impact-path" : undefined}
-              />
-            );
-          })}
-          {scenario.occurrences.map((item) => {
-            const pos = positions.get(item.local_ref)!;
-            const isSource = item.local_ref === source;
-            const active = focusedRefs.has(item.local_ref);
-            return (
-              <g key={item.local_ref}>
-                <rect
-                  {...pos}
-                  height="52"
-                  rx="9"
-                  fill={isSource && !sourceRemoved ? "#2a1423" : "#111b2e"}
-                  stroke={
-                    isSource && !sourceRemoved
-                      ? "#fb7185"
-                      : active
-                        ? "#7389a9"
-                        : "#33435b"
-                  }
-                />
-                <text
-                  x={pos.x + 12}
-                  y={pos.y + 22}
-                  fill="#e8eef8"
-                  fontSize="14"
-                  fontWeight="600"
-                >
-                  {item.name}
-                </text>
-                <text
-                  x={pos.x + 12}
-                  y={pos.y + 39}
-                  fill={isSource && !sourceRemoved ? "#fda4af" : "#99abc1"}
-                  fontSize="10"
-                >
-                  {isSource
-                    ? sourceRemoved
-                      ? "Removed by modeled control"
-                      : "Hypothetical compromise"
-                    : `v${item.version} · fixture`}
-                </text>
-              </g>
-            );
-          })}
-          {result.assets.map((reach) => {
-            const pos = positions.get(reach.asset.root_ref)!;
-            const status = statusForAsset(reach),
-              tone = tones[status];
-            return (
-              <g key={reach.asset.asset_id}>
-                <rect
-                  {...pos}
-                  height="52"
-                  rx="9"
-                  fill={tone.fill}
-                  stroke={
-                    reach.asset.asset_id === selectedId
-                      ? "#5eead4"
-                      : tone.stroke
-                  }
-                  strokeWidth={reach.asset.asset_id === selectedId ? 2 : 1}
-                />
-                <text
-                  x={pos.x + 12}
-                  y={pos.y + 21}
-                  fill="#e8eef8"
-                  fontSize="13"
-                  fontWeight="600"
-                >
-                  {reach.asset.name}
-                </text>
-                <text
-                  x={pos.x + 12}
-                  y={pos.y + 39}
-                  fill={tone.stroke}
-                  fontSize="10"
-                >
-                  {status === "exposed"
-                    ? "Reached"
-                    : status === "unknown"
-                      ? "Unknown gate"
-                      : "Not reached"}{" "}
-                  · weight {reach.asset.weight}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+    <div className="rounded-2xl border border-navy-700/80 bg-navy-900/80 p-5 sm:p-6 backdrop-blur-xl shadow-xl">
+      {/* Map Header & Legend */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-navy-800">
+        <div>
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <span className="flex h-2 w-2 rounded-full bg-teal-400" />
+            <span>Dependency Downstream Reachability Topology</span>
+          </h3>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Direction: Dependency ➔ Consumer (modeled blast-radius flow)
+          </p>
+        </div>
+
+        {/* Legend Pills */}
+        <div className="flex items-center gap-2 text-[11px] font-mono">
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-rose-500/30 bg-rose-500/10 text-rose-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+            <span>Exposed</span>
+          </span>
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            <span>Unknown</span>
+          </span>
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-teal-500/30 bg-teal-500/10 text-teal-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
+            <span>Not Reached</span>
+          </span>
+        </div>
       </div>
-      <div className="space-y-2 p-4 sm:hidden">
-        <div className="flex items-center gap-3 rounded-lg border border-rose-400/40 bg-rose-500/10 px-3 py-3">
-          <Package className="h-5 w-5 text-rose-300" />
-          <div>
-            <strong className="block text-sm text-white">
-              {scenario.source_package.name}@{scenario.source_package.version}
-            </strong>
-            <span className="text-[11px] text-rose-200">
-              {sourceRemoved
-                ? "Source removed by modeled control"
-                : "Assumed compromise · synthetic"}
-            </span>
+
+      {/* Responsive Graph Columns */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+        
+        {/* Column 1: Compromised Source Package (Cols 3) */}
+        <div className="md:col-span-3 flex flex-col justify-center">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold mb-2">
+            Compromised Origin
+          </div>
+          <div
+            className={`p-4 rounded-xl border transition-all ${
+              isSourceReplaced
+                ? "border-teal-500/40 bg-teal-500/5 text-slate-300"
+                : "border-rose-500/50 bg-rose-500/10 shadow-glow-rose"
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <div
+                className={`p-2 rounded-lg ${
+                  isSourceReplaced
+                    ? "bg-teal-500/20 text-teal-400"
+                    : "bg-rose-500/20 text-rose-400"
+                }`}
+              >
+                <Flame className="h-5 w-5" />
+              </div>
+              <div className="overflow-hidden text-left">
+                <div className="font-mono text-xs font-bold text-white truncate">
+                  {scenario.source_package.name}
+                </div>
+                <div className="font-mono text-[11px] text-slate-400">
+                  v{scenario.source_package.version}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3 pt-2.5 border-t border-navy-800 text-[11px] font-mono flex items-center justify-between">
+              <span className="text-slate-400">Status:</span>
+              <span
+                className={`font-semibold ${
+                  isSourceReplaced ? "text-teal-400" : "text-rose-400"
+                }`}
+              >
+                {isSourceReplaced ? "Mitigated (Replaced)" : "Active Source"}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex items-center justify-center gap-2 py-1 text-[10px] uppercase tracking-widest text-slate-400">
-          <ArrowDown className="h-3 w-3" /> Downstream asset reach
+
+        {/* Arrow Divider */}
+        <div className="hidden md:flex md:col-span-1 justify-center text-slate-600">
+          <ArrowRight className="h-5 w-5" />
         </div>
-        {onSelect ? (
-          <div className="space-y-2">{assetButtons}</div>
-        ) : (
-          <ul className="space-y-2">{assetButtons}</ul>
-        )}
+
+        {/* Column 2: Intermediate Transitive Dependencies (Cols 4) */}
+        <div className="md:col-span-4 space-y-2.5">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold mb-2 text-left">
+            Transitive Dependencies ({scenario.occurrences.length - 1})
+          </div>
+          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+            {scenario.occurrences
+              .filter((item) => item.local_ref !== sourceRef)
+              .map((item) => (
+                <div
+                  key={item.local_ref}
+                  className="p-2.5 rounded-lg border border-navy-700/70 bg-navy-950/70 flex items-center justify-between text-left"
+                >
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <Layers className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <span className="text-xs font-mono font-medium text-slate-200 truncate">
+                      {item.name}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400 bg-navy-900 px-1.5 py-0.5 rounded border border-navy-800">
+                    v{item.version}
+                  </span>
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* Arrow Divider */}
+        <div className="hidden md:flex md:col-span-1 justify-center text-slate-600">
+          <ArrowRight className="h-5 w-5" />
+        </div>
+
+        {/* Column 3: Downstream Target Assets (Cols 3) */}
+        <div className="md:col-span-3 space-y-2.5">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold mb-2 text-left">
+            Target Assets ({result.assets.length})
+          </div>
+          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+            {result.assets.map((reach) => {
+              const status = statusForAsset(reach);
+              const tone = statusTone[status];
+              const isSelected = selectedId === reach.asset.asset_id;
+
+              return (
+                <button
+                  key={reach.asset.asset_id}
+                  onClick={() => onSelect && onSelect(reach.asset.asset_id)}
+                  className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 ${
+                    isSelected
+                      ? "border-teal-400 bg-navy-850 shadow-glow-teal"
+                      : "border-navy-700/80 bg-navy-950/70 hover:border-navy-600 hover:bg-navy-900"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 overflow-hidden">
+                    <div className={`h-2 w-2 rounded-full shrink-0 ${tone.dot}`} />
+                    <div className="overflow-hidden">
+                      <div className="text-xs font-bold text-white truncate">
+                        {reach.asset.name}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        Weight: {reach.asset.weight} · {reach.asset.environment}
+                      </div>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded border shrink-0 ${tone.badge}`}
+                  >
+                    {tone.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Footer Helper */}
+      <div className="mt-5 pt-3.5 border-t border-navy-800/80 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-teal-400" />
+          <span>Click any asset above to inspect its exact witness routes and gate evidence.</span>
+        </div>
+        <span className="font-mono text-[11px] text-slate-500">
+          Graph model v1.0.0
+        </span>
       </div>
     </div>
   );
