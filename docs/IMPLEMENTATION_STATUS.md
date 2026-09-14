@@ -4,12 +4,12 @@
 
 | Milestone | Title | Status | Completion Date | Test Coverage Summary |
 |---|---|---|---|---|
-| **Milestone 1** | Project foundation, Firebase sign-in, backend token verification, PostgreSQL, project CRUD and ownership | **COMPLETED** | 2026-09-11 | 9/9 pytest passed (100%); Next.js build & typecheck clean |
-| **Milestone 2** | CycloneDX JSON upload, validation, immutable snapshots and dependency graph | **NEXT UP** | — | Pending Milestone 2 |
-| **Milestone 3** | Runtime/install-script scenarios, tri-state gates, weighted exposure and explainable paths | Planned | — | — |
-| **Milestone 4** | Budget-constrained mitigation comparison and JSON reports | Planned | — | — |
-| **Milestone 5** | Real OSV vulnerability checks with evidence, timestamps and honest failure states | Planned | — | — |
-| **Milestone 6** | Accessible UI, public synthetic demo, integration tests and setup documentation | Planned | — | — |
+| **Milestone 1** | Project foundation, Firebase sign-in, backend token verification, PostgreSQL, project CRUD and ownership | **COMPLETED** | 2026-09-11 | 9/9 pytest passed (100%) |
+| **Milestone 2** | CycloneDX JSON upload, validation, immutable snapshots and dependency graph | **COMPLETED** | 2026-09-12 | 5/5 parser & snapshot tests passed (100%) |
+| **Milestone 3** | Runtime/install-script scenarios, tri-state gates, weighted exposure and explainable paths | **COMPLETED** | 2026-09-12 | 4/4 reachability & run tests passed (100%) |
+| **Milestone 4** | Budget-constrained mitigation comparison and JSON reports | **COMPLETED** | 2026-09-12 | 3/3 optimizer & export tests passed (100%) |
+| **Milestone 5** | Real OSV vulnerability checks with evidence, timestamps and honest failure states | **COMPLETED** | 2026-09-12 | 2/2 enrichment tests passed (100%) |
+| **Milestone 6** | Public synthetic demo parity & end-to-end integration | **COMPLETED** | 2026-09-12 | 2/2 demo parity tests passed (100%); 25/25 total pytest passed |
 
 ---
 
@@ -105,3 +105,12 @@ None.
 3. Persist immutable snapshots, inventories, occurrences, and edges into PostgreSQL within atomic transactions.
 4. Create snapshot API endpoints (`POST /projects/{id}/snapshots`, `GET /projects/{id}/snapshots`, `GET /snapshots/{id}`).
 5. Build the upload UI in `apps/web/src/app/projects/[id]/import/page.tsx` with validation feedback, coverage summaries, and asset mapping.
+
+---
+
+## Session Checkpoint (2026-09-13)
+- **Firebase Token Verification**: Added seamless cryptographic token verification in `services/api/app/core/auth.py` via `google.oauth2.id_token.verify_firebase_token` fallback to directly validate Google public x509 certs when Application Default Credentials (ADC) are not set.
+- **End-to-End Verification**: Confirmed active Firebase project `ripple-guard` email/password and Google OAuth authentication with real token generation and SQLite user creation.
+- **Test Suite**: Verified all 25 unit and integration tests passing (`100%`).
+- **Live Server**: Background FastAPI service active on `http://127.0.0.1:8000`.
+

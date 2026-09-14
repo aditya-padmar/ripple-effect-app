@@ -15,7 +15,17 @@ from app.core.errors import (
 )
 from app.db.session import Base, engine
 from app.db import models  # noqa: F401
-from app.api.v1 import health, auth, projects
+from app.api.v1 import (
+    health,
+    auth,
+    projects,
+    snapshots,
+    runs,
+    optimizations,
+    enrichment,
+    demo,
+)
+from app import web_console
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("rippleguard")
@@ -83,11 +93,18 @@ def create_app() -> FastAPI:
     api_v1_router.include_router(health.router)
     api_v1_router.include_router(auth.router)
     api_v1_router.include_router(projects.router)
+    api_v1_router.include_router(snapshots.router)
+    api_v1_router.include_router(runs.router)
+    api_v1_router.include_router(optimizations.router)
+    api_v1_router.include_router(enrichment.router)
+    api_v1_router.include_router(demo.router)
 
     app.include_router(api_v1_router)
     
-    # Also mount health router directly at root level for orchestrator probes
+    # Also mount health router, demo router, and web console directly at root level
     app.include_router(health.router)
+    app.include_router(demo.router)
+    app.include_router(web_console.router)
 
     return app
 

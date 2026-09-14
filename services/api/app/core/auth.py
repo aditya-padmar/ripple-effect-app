@@ -80,21 +80,40 @@ def verify_firebase_id_token(token: str) -> Dict[str, Any]:
             code="FIREBASE_INIT_FAILED",
         )
 
-    # 4. Verify token through Firebase Admin SDK
-    try:
-        decoded = firebase_auth.verify_id_token(token, check_revoked=False)
-        # Validate audience & issuer match our configured project ID
-        if decoded.get("aud") != project_id:
-            raise UnauthorizedException("Invalid token audience. Expected configured Firebase Project ID.")
-        expected_iss = f"https://securetoken.google.com/{project_id}"
-        if decoded.get("iss") != expected_iss:
-            raise UnauthorizedException("Invalid token issuer.")
-        if not decoded.get("uid"):
-            raise UnauthorizedException("Token has no valid UID.")
-        return decoded
-    except Exception as e:
-        logger.warning(f"Firebase token verification failed: {e}")
+    # 4. Verify token through Firebase Admin SDK or Google public certs
+    decoded = None
+    cred_path = settings.GOOGLE_APPLICATION_CREDENTIALS.strip()
+    if cred_path and os.path.isfile(cred_path):
+        try:
+            decoded = firebase_auth.verify_id_token(token, check_revoked=False)
+        except Exception as admin_err:
+            logger.warning(f"Firebase admin token verification failed: {admin_err}")
+            raise UnauthorizedException(message="Invalid, expired, or malformed Firebase ID token.")
+    else:
+        try:
+            import google.oauth2.id_token as google_id_token
+            import google.auth.transport.requests as google_requests
+            request_adapter = google_requests.Request()
+            raw_decoded = google_id_token.verify_firebase_token(token, request_adapter, audience=project_id)
+            if raw_decoded:
+                decoded = dict(raw_decoded)
+                decoded["uid"] = raw_decoded.get("user_id") or raw_decoded.get("sub")
+        except Exception as cert_err:
+            logger.warning(f"Firebase token verification failed: {cert_err}")
+            raise UnauthorizedException(message="Invalid, expired, or malformed Firebase ID token.")
+
+    if not decoded:
         raise UnauthorizedException(message="Invalid, expired, or malformed Firebase ID token.")
+
+    # Validate audience & issuer match our configured project ID
+    if decoded.get("aud") != project_id:
+        raise UnauthorizedException("Invalid token audience. Expected configured Firebase Project ID.")
+    expected_iss = f"https://securetoken.google.com/{project_id}"
+    if decoded.get("iss") != expected_iss:
+        raise UnauthorizedException("Invalid token issuer.")
+    if not decoded.get("uid"):
+        raise UnauthorizedException("Token has no valid UID.")
+    return decoded
 
 
 def get_current_user(
