@@ -12,9 +12,9 @@ import {
   Menu,
   X,
   ArrowRight,
-  Activity,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
+import { ThemeToggle } from "./ThemeToggle";
 
 export const Header: React.FC = () => {
   const { user, loading, isConfigured, logout } = useAuth();
@@ -24,7 +24,7 @@ export const Header: React.FC = () => {
   const isActive = (path: string) => pathname === path;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-navy-700/60 bg-navy-950/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/85 dark:border-navy-700/60 dark:bg-navy-950/85 backdrop-blur-xl transition-colors duration-200">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Brand Logo */}
         <Link
@@ -32,21 +32,21 @@ export const Header: React.FC = () => {
           className="group flex items-center gap-3 transition-opacity hover:opacity-90"
           onClick={() => setMenuOpen(false)}
         >
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400/20 to-teal-500/5 border border-teal-500/30 text-teal-300 shadow-glow-teal transition-all group-hover:scale-105">
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500/15 to-teal-500/5 border border-teal-500/30 text-teal-600 dark:text-teal-300 shadow-sm dark:shadow-glow-teal transition-all group-hover:scale-105">
             <Shield className="h-5 w-5" />
-            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-teal-400 animate-ping" />
-            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-teal-400" />
+            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-teal-500 animate-ping" />
+            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-teal-500" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-base font-bold tracking-tight text-white">
+              <span className="text-base font-bold tracking-tight text-slate-900 dark:text-white">
                 RippleGuard
               </span>
-              <span className="rounded bg-teal-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-teal-300 border border-teal-500/20">
+              <span className="rounded bg-teal-50 dark:bg-teal-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-500/20">
                 v0.1
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
               Dependency Blast-Radius Simulator
             </p>
           </div>
@@ -58,38 +58,41 @@ export const Header: React.FC = () => {
             href="/demo"
             className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all ${
               isActive("/demo")
-                ? "bg-teal-500/15 text-teal-300 border border-teal-500/30"
-                : "text-slate-300 hover:bg-navy-850 hover:text-white"
+                ? "bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-navy-850 dark:hover:text-white"
             }`}
           >
-            <Sparkles className="h-3.5 w-3.5 text-teal-400" />
+            <Sparkles className="h-3.5 w-3.5 text-teal-500 dark:text-teal-400" />
             <span>Interactive Demo</span>
           </Link>
           <Link
             href="/dashboard"
             className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all ${
               isActive("/dashboard")
-                ? "bg-teal-500/15 text-teal-300 border border-teal-500/30"
-                : "text-slate-300 hover:bg-navy-850 hover:text-white"
+                ? "bg-teal-500/15 text-teal-700 dark:text-teal-300 border border-teal-500/30"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-navy-850 dark:hover:text-white"
             }`}
           >
-            <FolderKanban className="h-3.5 w-3.5 text-slate-400" />
+            <FolderKanban className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
             <span>Projects & Assets</span>
           </Link>
         </nav>
 
-        {/* Auth / Action Area */}
-        <div className="hidden items-center gap-3 md:flex">
+        {/* Auth / Action Area + Theme Toggle */}
+        <div className="hidden items-center gap-2.5 md:flex">
+          {/* Theme Toggle Button */}
+          <ThemeToggle />
+
           {loading ? (
-            <div className="h-9 w-28 animate-pulse rounded-xl bg-navy-800" />
+            <div className="h-9 w-28 animate-pulse rounded-xl bg-slate-200 dark:bg-navy-800" />
           ) : user ? (
             <div className="flex items-center gap-3">
-              <span className="max-w-[180px] truncate text-xs text-slate-400">
+              <span className="max-w-[170px] truncate text-xs text-slate-600 dark:text-slate-400">
                 {user.email}
               </span>
               <button
                 onClick={() => logout()}
-                className="btn-secondary !p-2 text-slate-400 hover:text-rose-400"
+                className="btn-secondary !p-2 text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400"
                 title="Sign out"
                 aria-label="Sign out"
               >
@@ -109,47 +112,50 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <button
-          onClick={() => setMenuOpen(!menuOpen)}
-          className="btn-secondary !p-2 md:hidden"
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-        >
-          {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {/* Mobile Actions (Theme Toggle + Menu Button) */}
+        <div className="flex items-center gap-2 md:hidden">
+          <ThemeToggle />
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="btn-secondary !p-2"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Drawer */}
       {menuOpen && (
-        <div className="border-b border-navy-850 bg-navy-950/95 px-4 py-4 md:hidden backdrop-blur-2xl">
+        <div className="border-b border-slate-200 bg-white/95 px-4 py-4 md:hidden dark:border-navy-850 dark:bg-navy-950/95 backdrop-blur-2xl">
           <nav className="flex flex-col gap-2">
             <Link
               href="/demo"
               onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-200 hover:bg-navy-850"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-navy-850"
             >
-              <Sparkles className="h-4 w-4 text-teal-400" />
+              <Sparkles className="h-4 w-4 text-teal-500 dark:text-teal-400" />
               <span>Interactive Demo</span>
             </Link>
             <Link
               href="/dashboard"
               onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-200 hover:bg-navy-850"
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-navy-850"
             >
-              <FolderKanban className="h-4 w-4 text-slate-400" />
+              <FolderKanban className="h-4 w-4 text-slate-500 dark:text-slate-400" />
               <span>Projects & Assets</span>
             </Link>
 
-            <div className="mt-3 border-t border-navy-850 pt-3">
+            <div className="mt-3 border-t border-slate-200 dark:border-navy-850 pt-3">
               {user ? (
                 <div className="flex items-center justify-between px-3 py-2">
-                  <span className="text-xs text-slate-400 truncate">{user.email}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 truncate">{user.email}</span>
                   <button
                     onClick={() => {
                       logout();
                       setMenuOpen(false);
                     }}
-                    className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-300"
+                    className="flex items-center gap-1.5 text-xs text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300"
                   >
                     <LogOut className="h-3.5 w-3.5" />
                     <span>Sign Out</span>

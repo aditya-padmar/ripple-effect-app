@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 :root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+
+.dark {
   --background: #070b14;
   --foreground: #f1f5f9;
 }
@@ -12,15 +17,14 @@
 }
 
 html {
-  background: #070b14;
-  color-scheme: dark;
+  background-color: var(--background);
   scroll-behavior: smooth;
 }
 
 body {
   min-height: 100vh;
   color: var(--foreground);
-  background-color: #070b14;
+  background-color: var(--background);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   overflow-x: hidden;
 }
@@ -31,20 +35,27 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #070b14;
+  background: var(--background);
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #cbd5e1;
   border-radius: 9999px;
+  border: 2px solid var(--background);
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
   border: 2px solid #070b14;
 }
 ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
   background: #334155;
 }
 
 /* Custom Focus Ring */
 :focus-visible {
-  outline: 2px solid #2dd4bf;
+  outline: 2px solid #14b8a6;
   outline-offset: 2px;
 }
 
@@ -53,48 +64,54 @@ body {
   position: absolute;
   inset: 0;
   background-image: 
-    linear-gradient(to right, rgba(45, 212, 191, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(45, 212, 191, 0.04) 1px, transparent 1px);
+    linear-gradient(to right, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
   background-size: 40px 40px;
   mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, #000 70%, transparent 100%);
   pointer-events: none;
 }
 
-/* Glassmorphic Components */
+.dark .field-grid {
+  background-image: 
+    linear-gradient(to right, rgba(45, 212, 191, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(45, 212, 191, 0.04) 1px, transparent 1px);
+}
+
+/* Glassmorphic Components with Full Dark/Light Support */
 @layer components {
   .glass-card {
-    @apply rounded-2xl border border-navy-700/60 bg-navy-900/60 backdrop-blur-xl shadow-xl transition-all duration-200;
+    @apply rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-xl shadow-card transition-all duration-200 dark:border-navy-700/60 dark:bg-navy-900/60 dark:shadow-xl;
   }
   
   .glass-card-hover {
-    @apply glass-card hover:border-teal-500/40 hover:bg-navy-850/80 hover:shadow-glow-teal hover:-translate-y-0.5;
+    @apply glass-card hover:border-teal-500/40 hover:bg-slate-50/90 hover:shadow-lg dark:hover:bg-navy-850/80 dark:hover:shadow-glow-teal hover:-translate-y-0.5;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-teal-400 px-5 py-2.5 text-sm font-bold text-navy-950 shadow-glow-teal transition-all duration-200 hover:bg-teal-300 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-teal-500 px-5 py-2.5 text-sm font-bold text-white shadow-md transition-all duration-200 hover:bg-teal-600 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none dark:bg-teal-400 dark:text-navy-950 dark:shadow-glow-teal dark:hover:bg-teal-300;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-navy-700 bg-navy-850/80 px-5 py-2.5 text-sm font-semibold text-slate-200 backdrop-blur transition-all duration-200 hover:border-navy-600 hover:bg-navy-800 hover:text-white active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition-all duration-200 hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none dark:border-navy-700 dark:bg-navy-850/80 dark:text-slate-200 dark:hover:border-navy-600 dark:hover:bg-navy-800 dark:hover:text-white;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-navy-800 hover:text-teal-300;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-navy-800 dark:hover:text-teal-300;
   }
 
   .badge-teal {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-teal-400/30 bg-teal-400/10 px-3 py-1 text-xs font-semibold text-teal-300;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-teal-500/30 bg-teal-500/10 px-3 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300;
   }
 
   .badge-rose {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-300;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-700 dark:text-rose-300;
   }
 
   .badge-amber {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300;
   }
 
   .skip-link {
-    @apply sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-teal-400 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-navy-950;
+    @apply sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-lg focus:bg-teal-500 focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white dark:focus:bg-teal-400 dark:focus:text-navy-950;
   }
 }

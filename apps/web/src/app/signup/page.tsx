@@ -55,29 +55,33 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md bg-navy-900/90 border border-navy-700/70 p-8 rounded-2xl shadow-2xl backdrop-blur">
+    <div className="flex-1 flex items-center justify-center px-4 py-16">
+      <div className="w-full max-w-md bg-white border border-slate-200 p-8 rounded-2xl shadow-xl backdrop-blur transition-colors duration-200 dark:bg-navy-900/90 dark:border-navy-700/70 dark:shadow-2xl">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-400 mx-auto flex items-center justify-center mb-4">
+          <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-600 dark:text-teal-400 mx-auto flex items-center justify-center mb-4 shadow-sm">
             <Shield className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Create your Account</h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Create your Account</h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Start modeling dependency blast radius across your environments
           </p>
         </div>
 
         {!isConfigured && (
-          <div className="mb-6 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="mb-6 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2.5 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-300">
+            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
             <div>
-              <span className="font-semibold">Firebase Not Configured:</span> Web credentials are not set in <code className="bg-navy-950 px-1 py-0.5 rounded text-teal-300">apps/web/.env.local</code>. Please configure Firebase Authentication to register.
+              <span className="font-semibold">Firebase Not Configured:</span> Web credentials are not set in{" "}
+              <code className="bg-amber-100 px-1 py-0.5 rounded text-amber-900 dark:bg-navy-950 dark:text-teal-300">
+                apps/web/.env.local
+              </code>
+              . Please configure Firebase Authentication to register.
             </div>
           </div>
         )}
 
         {error && (
-          <div className="mb-6 p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-start gap-2.5">
+          <div className="mb-6 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300">
             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
             <div>{error}</div>
           </div>
@@ -85,7 +89,7 @@ export default function SignupPage() {
 
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5" htmlFor="email">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="email">
               Email Address
             </label>
             <input
@@ -95,13 +99,13 @@ export default function SignupPage() {
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading || !isConfigured}
               placeholder="developer@example.com"
-              className="w-full px-3.5 py-2.5 rounded-lg bg-navy-950 border border-navy-700 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors disabled:opacity-50"
+              className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:border-teal-500 transition-colors disabled:opacity-50 dark:bg-navy-950 dark:border-navy-700 dark:text-white dark:placeholder:text-slate-500"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5" htmlFor="password">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="password">
               Password (min. 6 characters)
             </label>
             <input
@@ -111,13 +115,13 @@ export default function SignupPage() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading || !isConfigured}
               placeholder="••••••••••••"
-              className="w-full px-3.5 py-2.5 rounded-lg bg-navy-950 border border-navy-700 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors disabled:opacity-50"
+              className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:border-teal-500 transition-colors disabled:opacity-50 dark:bg-navy-950 dark:border-navy-700 dark:text-white dark:placeholder:text-slate-500"
               required
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5" htmlFor="confirmPassword">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5" htmlFor="confirmPassword">
               Confirm Password
             </label>
             <input
@@ -127,7 +131,7 @@ export default function SignupPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               disabled={loading || !isConfigured}
               placeholder="••••••••••••"
-              className="w-full px-3.5 py-2.5 rounded-lg bg-navy-950 border border-navy-700 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-teal-500 transition-colors disabled:opacity-50"
+              className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:border-teal-500 transition-colors disabled:opacity-50 dark:bg-navy-950 dark:border-navy-700 dark:text-white dark:placeholder:text-slate-500"
               required
             />
           </div>
@@ -135,7 +139,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading || !isConfigured}
-            className="w-full py-2.5 rounded-lg bg-teal-500 hover:bg-teal-400 text-navy-950 font-bold text-sm shadow-md transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2.5 rounded-lg bg-teal-500 hover:bg-teal-600 text-white font-bold text-sm shadow-md transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-teal-400 dark:text-navy-950 dark:hover:bg-teal-300"
           >
             {loading ? (
               <span>Creating account...</span>
@@ -150,9 +154,9 @@ export default function SignupPage() {
 
         <div className="relative my-6 text-center">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-navy-700" />
+            <div className="w-full border-t border-slate-200 dark:border-navy-700" />
           </div>
-          <span className="relative bg-navy-900 px-3 text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+          <span className="relative bg-white px-3 text-[11px] text-slate-500 uppercase tracking-wider font-semibold dark:bg-navy-900 dark:text-slate-400">
             Or register with
           </span>
         </div>
@@ -161,7 +165,7 @@ export default function SignupPage() {
           type="button"
           onClick={handleGoogleSignUp}
           disabled={loading || !isConfigured}
-          className="w-full py-2.5 rounded-lg bg-navy-800 hover:bg-navy-750 border border-navy-700 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-2.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold text-sm transition-colors flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed dark:bg-navy-800 dark:hover:bg-navy-750 dark:border-navy-700 dark:text-white"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path
@@ -184,9 +188,9 @@ export default function SignupPage() {
           <span>Register with Google</span>
         </button>
 
-        <div className="mt-8 text-center text-xs text-slate-400">
+        <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
           Already have an account?{" "}
-          <Link href="/login" className="text-teal-400 hover:text-teal-300 font-semibold transition-colors">
+          <Link href="/login" className="text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 font-semibold transition-colors">
             Sign in
           </Link>
         </div>
