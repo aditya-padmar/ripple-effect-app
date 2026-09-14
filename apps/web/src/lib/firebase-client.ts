@@ -20,18 +20,30 @@ export interface FirebaseUser {
   getIdToken: (forceRefresh?: boolean) => Promise<string>;
 }
 
+function getEnvVal(val: string | undefined, fallback: string): string {
+  if (!val || val === "replace_me" || val.trim() === "") {
+    return fallback;
+  }
+  return val;
+}
+
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBVGDfN2RLnkTKfM8x2v4SLC_6JUocVMcM",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "ripple-guard.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "ripple-guard",
+  apiKey: getEnvVal(process.env.NEXT_PUBLIC_FIREBASE_API_KEY, "AIzaSyBVGDfN2RLnkTKfM8x2v4SLC_6JUocVMcM"),
+  authDomain: getEnvVal(process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN, "ripple-guard.firebaseapp.com"),
+  projectId: getEnvVal(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID, "ripple-guard"),
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "ripple-guard.firebasestorage.app",
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "81571425592",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:81571425592:web:035980d2f44e12c43aa5cd",
+  appId: getEnvVal(process.env.NEXT_PUBLIC_FIREBASE_APP_ID, "1:81571425592:web:035980d2f44e12c43aa5cd"),
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-NWD89HY3CN",
 };
 
 export function isFirebaseConfigured(): boolean {
-  return Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
+  return Boolean(
+    firebaseConfig.apiKey &&
+    firebaseConfig.apiKey !== "replace_me" &&
+    firebaseConfig.projectId &&
+    firebaseConfig.projectId !== "replace_me"
+  );
 }
 
 let app: FirebaseApp | null = null;
