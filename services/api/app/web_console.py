@@ -296,9 +296,24 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
           </div>
         </div>
 
-        <div id="ingest-status" class="hidden p-4 rounded-xl bg-navy-950 border border-teal-500/30 text-xs flex flex-col gap-3 font-mono">
-          <div class="text-teal-300 font-bold">Progress Log:</div>
-          <div id="ingest-log" class="text-slate-300 leading-relaxed text-[11px]"></div>
+        <!-- Real-Time Analysis Terminal / Pipeline -->
+        <div id="ingest-status" class="hidden rounded-2xl bg-navy-950 border border-navy-700/80 shadow-2xl overflow-hidden font-mono text-xs">
+          <!-- Terminal Header Bar -->
+          <div class="bg-navy-900/90 px-4 py-2.5 border-b border-navy-800 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-rose-500/80 inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+              <span class="text-xs font-semibold text-slate-300 ml-2 font-mono">RippleGuard Security Pipeline Log</span>
+            </div>
+            <span id="pipeline-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
+              IDLE
+            </span>
+          </div>
+
+          <!-- Log Lines Container -->
+          <div id="ingest-log" class="p-4 flex flex-col gap-2 max-h-96 overflow-y-auto">
+          </div>
         </div>
 
         <!-- Discovered Findings Table -->
@@ -602,6 +617,58 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
       await runIngestionWithPayload(sampleSbom, "Payment Core Gateway (Sample)");
     }
 
+    function setPipelineStatus(status, colorClass) {
+      const badge = document.getElementById('pipeline-badge');
+      if (badge) {
+        badge.innerText = status;
+        if (colorClass === 'emerald') {
+          badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+        } else if (colorClass === 'rose') {
+          badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+        } else {
+          badge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30 animate-pulse';
+        }
+      }
+    }
+
+    function addLog(text, type = 'info') {
+      const logBox = document.getElementById('ingest-log');
+      const div = document.createElement('div');
+      div.className = 'flex items-start gap-2.5 text-xs leading-relaxed py-0.5';
+      
+      let badgeHtml = '';
+      let textClass = 'text-slate-300';
+      
+      if (type === 'step') {
+        badgeHtml = '<span class="px-1.5 py-0.5 rounded bg-navy-800 text-teal-300 font-bold text-[10px] border border-teal-500/30 shrink-0">STEP</span>';
+        textClass = 'text-white font-semibold';
+      } else if (type === 'success') {
+        badgeHtml = '<span class="text-emerald-400 font-bold shrink-0">✓</span>';
+        textClass = 'text-emerald-300';
+      } else if (type === 'warn') {
+        badgeHtml = '<span class="text-amber-400 font-bold shrink-0">⚠️</span>';
+        textClass = 'text-amber-300';
+      } else if (type === 'error') {
+        badgeHtml = '<span class="text-rose-400 font-bold shrink-0">✕</span>';
+        textClass = 'text-rose-400 font-semibold';
+      } else {
+        badgeHtml = '<span class="text-slate-500 shrink-0">›</span>';
+        textClass = 'text-slate-400';
+      }
+
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0];
+
+      div.innerHTML = `
+        <span class="text-[10px] text-slate-500 font-mono select-none shrink-0 pt-0.5">${timeStr}</span>
+        ${badgeHtml}
+        <span class="${textClass} break-words flex-1">${text}</span>
+      `;
+      
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+
     async function runIngestionWithPayload(payload, sourceName) {
       const statusBox = document.getElementById('ingest-status');
       const logBox = document.getElementById('ingest-log');
@@ -611,6 +678,8 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
       statusBox.classList.remove('hidden');
       findingsContainer.classList.add('hidden');
       findingsBody.innerHTML = '';
+      logBox.innerHTML = '';
+      setPipelineStatus('RUNNING', 'teal');
       
       const authHeader = window.currentUserToken 
         ? `Bearer ${window.currentUserToken}`
@@ -619,7 +688,8 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
       const userDesc = window.currentUser ? `Firebase User (${window.currentUser.email})` : 'Demo Session (judge@example.com)';
       const projectName = sourceName.replace('.json', '') || 'Custom SBOM Project';
       
-      logBox.innerHTML = `1. Creating Project under ${userDesc}...\\n`;
+      addLog(`Initializing Project workspace for: "${projectName}"`, 'step');
+      addLog(`Session profile: ${userDesc}`, 'info');
 
       try {
         // Step 1: Create project
@@ -633,9 +703,10 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
           throw new Error(`Project creation failed (${pRes.status}): ${errData?.error?.message || pRes.statusText}`);
         }
         const project = await pRes.json();
-        logBox.innerHTML += `✓ Project created (ID: ${project.id})\\n2. Uploading CycloneDX SBOM payload (${sourceName})...\\n`;
+        addLog(`Project created successfully · ID: ${project.id}`, 'success');
 
         // Step 2: Upload CycloneDX SBOM
+        addLog(`Parsing and persisting CycloneDX SBOM payload (${sourceName})`, 'step');
         const sRes = await fetch(`/api/v1/projects/${project.id}/snapshots`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
@@ -646,9 +717,10 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
           throw new Error(`SBOM upload failed (${sRes.status}): ${errData?.error?.message || sRes.statusText}`);
         }
         const snapshot = await sRes.json();
-        logBox.innerHTML += `✓ Snapshot parsed & persisted! Nodes: ${snapshot.occurrence_count}, Edges: ${snapshot.edge_count}\\n3. Running OSV security vulnerability check...\\n`;
+        addLog(`Snapshot persisted (ID: ${snapshot.id}) · Resolved ${snapshot.occurrence_count} package components & ${snapshot.edge_count} dependency edges`, 'success');
 
         // Step 3: Run Enrichment Check
+        addLog(`Querying Google OSV advisory database for package vulnerabilities`, 'step');
         const eRes = await fetch(`/api/v1/snapshots/${snapshot.id}/enrichment-checks`, {
           method: 'POST',
           headers: { 'Authorization': authHeader }
@@ -658,10 +730,14 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
           throw new Error(`Enrichment trigger failed (${eRes.status}): ${errData?.error?.message || eRes.statusText}`);
         }
         const check = await eRes.json();
-        const checkCount = check.findings_count !== undefined ? `${check.findings_count} findings` : 'check complete';
-        logBox.innerHTML += `✓ OSV check status: '${check.status}' (${checkCount})\\n4. Fetching Cytoscape dependency graph...\\n`;
+        if (check.status === 'complete') {
+          addLog(`OSV security check completed · Status: 'complete' (${check.findings_count} findings)`, 'success');
+        } else {
+          addLog(`OSV security check status: '${check.status}' (upstream provider returned ${check.findings_count} findings; offline fallback active)`, 'warn');
+        }
 
         // Step 4: Fetch Graph
+        addLog(`Compiling directed Cytoscape dependency graph`, 'step');
         const gRes = await fetch(`/api/v1/snapshots/${snapshot.id}/graph`, {
           headers: { 'Authorization': authHeader }
         });
@@ -672,9 +748,10 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
         const graph = await gRes.json();
         const nodeCount = graph.nodes ? graph.nodes.length : 0;
         const edgeCount = graph.edges ? graph.edges.length : 0;
-        logBox.innerHTML += `✓ Cytoscape graph returned: ${nodeCount} nodes, ${edgeCount} edges ready for visual layout!\\n`;
+        addLog(`Cytoscape topology graph returned: ${nodeCount} nodes, ${edgeCount} edges ready for visual exploration`, 'success');
 
         // Step 5: Fetch Findings
+        addLog(`Loading security advisory findings`, 'step');
         const fRes = await fetch(`/api/v1/snapshots/${snapshot.id}/findings`, {
           headers: { 'Authorization': authHeader }
         });
@@ -691,13 +768,15 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
                 <td class="p-3 text-slate-300 text-[11px]">${item.match_details.summary || 'Security advisory match'}</td>
               </tr>
             `).join('');
-            logBox.innerHTML += `✓ Displayed ${findings.items.length} security advisories in findings table below!\\n`;
+            addLog(`Discovered ${findings.items.length} matching security advisories · Displayed in findings table below`, 'success');
           } else {
-            logBox.innerHTML += `✓ No known vulnerabilities reported in OSV for this package inventory.\\n`;
+            addLog(`Zero known vulnerabilities identified in current advisory database for this package inventory`, 'info');
           }
         }
+        setPipelineStatus('COMPLETE', 'emerald');
       } catch (err) {
-        logBox.innerHTML += `\\n❌ Error: ${err.message}`;
+        addLog(`Pipeline failed: ${err.message}`, 'error');
+        setPipelineStatus('FAILED', 'rose');
       }
     }
 
